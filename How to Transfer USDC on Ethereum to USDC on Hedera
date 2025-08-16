@@ -1,0 +1,33 @@
+To convert USDC to USDC on Hedera, if you mean transferring USDC tokens from one account to another on the Hedera network, you can use the Hedera Token Service (HTS) to perform a token transfer. This is a straightforward operation and does not involve any actual "conversion" since the token type remains the same—you're simply moving USDC from one account to another.
+
+Here’s how you can do it using the Hedera SDK (JavaScript example):
+
+```javascript
+const transferTx = await new TransferTransaction()
+    .addTokenTransfer(usdcTokenId, senderAccountId, -amount) // Sender sends USDC
+    .addTokenTransfer(usdcTokenId, receiverAccountId, amount) // Receiver receives USDC
+    .freezeWith(client);
+
+// Sign with the sender's private key
+const signedTx = await transferTx.sign(senderPrivateKey);
+
+// Execute the transaction
+const txResponse = await signedTx.execute(client);
+
+// Get the receipt to confirm the transfer
+const receipt = await txResponse.getReceipt(client);
+
+console.log("Transfer status: " + receipt.status.toString());
+```
+
+- Make sure both accounts are associated with the USDC token before transferring.
+- The `amount` should be specified in the smallest denomination (e.g., for USDC with 6 decimals, 1 USDC = 1,000,000 units).
+
+Alternatively, you can use command-line tools like yahcli to send USDC:
+
+```bash
+docker run -it -v $(pwd):/launch gcr.io/hedera-registry/yahcli:0.4.1 -n stabletestnet -p 2 accounts send -d 0.0.2276691 --to <receiver-account-id> --memo "Transfer USDC" 1.23
+```
+Here, `0.0.2276691` is the token ID for USDC on testnet, and `1.23` is the amount of USDC to send (with 6 decimals, so 1.23 = 1,230,000 units) [Sending fungible HTS units](https://github.com/hashgraph/hedera-services/blob/main/hedera-node/yahcli/README.md).
+
+If you meant something different by "convert USDC to USDC" (such as cross-chain bridging or swapping between wrapped versions), please clarify your use case.
