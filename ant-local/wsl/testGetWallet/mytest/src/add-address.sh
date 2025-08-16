@@ -1,0 +1,1 @@
+cast send "0x4761969E2FF16EE14EF91D22685DdE96621bc415"   "setWallet(string,address)" "user-uuid-124" "0x5A760bf4Ded4eDa7F0721C7b1c4bC4caDd1f6687"   --rpc-url https://testnet.evm.nodes.onflow.org   --legacy   --private-key "0x0cf7a1da1fd2361f23ae6c706f48946c6a1c8577fc231b8aab6eaeb090ecfe31"
