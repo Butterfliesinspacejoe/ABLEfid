@@ -1,0 +1,69 @@
+Prompt/Question Asked:
+how do I use the Hedera Contract Builder to create and deploy a smart contract that swaps Hedera Testnet Hbar tokens for Hedera USDC tokens
+
+Response/Answer:
+To use the Hedera Contract Builder to create and deploy a smart contract that swaps Hedera Testnet HBAR for Hedera USDC tokens, follow these steps:
+
+---
+
+### 1. Access the Hedera Contract Builder
+
+- Go to the [Hedera Contract Builder](https://portal.hedera.com/contract-builder).
+- Log in with your [Hedera Portal account](https://portal.hedera.com/register) if prompted.
+
+---
+
+### 2. Author Your Smart Contract
+
+- In the Contract Builder, you can write Solidity code directly in the browser.
+- For a swap contract, you’ll need to:
+  - Accept HBAR (using `receive()` or `fallback()` functions).
+  - Interact with the Hedera Token Service (HTS) to transfer USDC tokens.
+- The Contract Builder provides templates for ERC-20 and HTS contracts, which you can use as a starting point. However, you will need to write custom logic for the swap functionality.
+
+**Note:** The knowledge sources do not provide a ready-made swap contract template. You will need to implement the logic yourself, possibly using the HTS precompiles for token transfers. Example contracts for sending/receiving HBAR and interacting with HTS are available, but not a direct swap contract for HBAR ↔ USDC.
+
+---
+
+### 3. Compile the Contract
+
+- Click the **Compile** button in the Contract Builder after writing your contract.
+- Fix any compilation errors that appear.
+
+---
+
+### 4. Deploy the Contract
+
+- Click the **Deploy** button.
+- You may need to provide constructor arguments (such as the USDC token address on testnet).
+- Once deployed, the Contract Builder will show your contract’s address and provide an interface to call its functions.
+
+---
+
+### 5. Interact with the Contract
+
+- Use the Contract Builder’s UI to call your contract’s swap function.
+- You can send HBAR to the contract and, if your logic is correct, receive USDC tokens in return.
+
+---
+
+### Additional Notes
+
+- The Contract Builder supports HTS and ERC-20 standards, and you can use the built-in templates as a reference for token operations.
+- You can verify your contract on [HashScan](https://hashscan.io/) using Sourcify directly from the Contract Builder.
+- The process is browser-based—no local setup is required, making it fast to iterate and test your contract logic.
+
+---
+
+**Limitations:**  
+The knowledge sources do not provide a full example of a swap contract for HBAR and USDC. You will need to write the Solidity logic yourself, using the HTS precompiles for token transfers. The Contract Builder is designed to make this process easy, but you must ensure your contract logic is correct and secure for swapping tokens. For more details, see the [Hedera Contract Builder documentation](https://docs.hedera.com/hedera/open-source-solutions/hedera-contract-builder) and [HTS precompile examples](https://github.com/hashgraph/hedera-smart-contracts/tree/main/hts-precompile) if needed.
+
+---
+
+**Summary:**  
+- Use the [Hedera Contract Builder](https://portal.hedera.com/contract-builder) to write, compile, and deploy your swap contract.
+- Implement swap logic in Solidity using HTS precompiles.
+- Deploy and interact with your contract directly from the browser interface  
+[Source: Hedera Contract Builder Quickstart](https://docs.hedera.com/hedera/getting-started-evm-developers/deploy-your-first-contract-with-hedera-contract-builder#hedera-contract-builder-quickstart), [Introducing the Hedera Contract Builder](https://hedera.com/blog/introducing-the-hedera-contract-builder).
+
+If you need a starting point for HBAR and HTS token transfers in Solidity, refer to the [HTS precompile examples](https://github.com/hashgraph/hedera-smart-contracts/tree/main/hts-precompile) and the [Hedera documentation](https://docs.hedera.com/hedera/open-source-solutions/hedera-contract-builder).
