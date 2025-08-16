@@ -1,0 +1,170 @@
+:root {
+    --bg: #f8fafc;
+    /* slate-50 */
+    --card: #ffffff;
+    /* white */
+    --text: #0f172a;
+    /* slate-900 */
+    --muted: #475569;
+    /* slate-600 */
+    --brand: #4f46e5;
+    /* indigo-600 */
+    --brand-700: #4338ca;
+    /* indigo-700 */
+    --ring: rgba(79, 70, 229, 0.35);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    color: var(--text);
+    background: linear-gradient(135deg, #ffffff 0%, var(--bg) 100%);
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: radial-gradient(circle at 30% 30%, #a5b4fc, #6366f1 60%, #4338ca);
+    box-shadow: 0 8px 16px rgba(79, 70, 229, .25);
+}
+
+.brand-name {
+    font-weight: 800;
+    letter-spacing: 0.2px;
+}
+
+.nav-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    appearance: none;
+    border: 1px solid transparent;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .04s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn-primary {
+    background: var(--brand);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--brand-700);
+}
+
+.btn-outline {
+    background: transparent;
+    border-color: var(--brand);
+    color: var(--brand);
+}
+
+.btn-outline:hover {
+    background: rgba(79, 70, 229, .08);
+}
+
+.btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px var(--ring);
+}
+
+.hero {
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 72px 0 48px;
+}
+
+.title {
+    font-size: clamp(2rem, 4vw + .5rem, 3rem);
+    margin: 0 0 12px;
+}
+
+.title .accent {
+    color: var(--brand);
+}
+
+.subtitle {
+    color: var(--muted);
+    font-size: 1.1rem;
+    margin: 0 0 24px;
+}
+
+.cta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 40px;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+    text-align: left;
+}
+
+.card h3 {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
+}
+
+.card p {
+    margin: 0;
+    color: var(--muted);
+}
+
+footer {
+    text-align: center;
+    color: #94a3b8;
+    font-size: .9rem;
+    padding: 48px 0 16px;
+}
