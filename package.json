@@ -1,0 +1,25 @@
+{
+  "name": "ablefid",
+  "version": "1.0.0",
+  "description": "**ABLEfid** (pronounced “Able-fide”) is a decentralized application that enables fiduciaries to send, track, and manage stablecoin-based funds for people with disabilities—while ensuring compliance with Social Security and Medicaid financial limitations.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Butterfliesinspacejoe/ABLEfid.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Butterfliesinspacejoe/ABLEfid/issues"
+  },
+  "homepage": "https://github.com/Butterfliesinspacejoe/ABLEfid#readme",
+  "dependencies": {
+    "ethers": "^6.15.0"
+  }
+}

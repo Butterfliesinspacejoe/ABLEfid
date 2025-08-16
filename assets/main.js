@@ -1,3 +1,9 @@
+import { test_connection } from "./test.js";
+
+document.getElementById("connectBtn").addEventListener("click", test_connection);
+
+
+
 // Simple progressive enhancements
 (function () {
     const yearEl = document.getElementById('year');

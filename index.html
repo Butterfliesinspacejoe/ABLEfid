@@ -7,6 +7,7 @@
   <meta name="description" content="ABLEfid helps fiduciaries and beneficiaries manage stablecoin funds simply and securely." />
   <link rel="stylesheet" href="assets/ablefid.css">
 </head>
+
 <body>
   <div class="container">
     <header aria-label="Site header">
@@ -50,11 +51,39 @@
 
     <a class="btn" href="/demos/flow/login.html">Flow Testnet Login</a>
 
+    <h1>Test the connection to the smart contract!</h1>
+    <button id="connectBtn">Connect</button>
+
     <footer>
       <span id="year"></span> © ABLEfid. All rights reserved.
     </footer>
   </div>
 
-  <script src="assets/main.js"></script>
+
+  <script type="module">
+  import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.min.js";
+
+  const rpcUrl = "https://testnet.evm.nodes.onflow.org";
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
+
+  const contractAddress = "0x4761969E2FF16EE14EF91D22685DdE96621bc415";
+  const abi = [
+    "function getWallet(string) view returns (address)"
+  ];
+
+  async function test_connection() {
+    console.log("Connecting to Flow testnet…");
+    const contract = new ethers.Contract(contractAddress, abi, provider);
+    const result = await contract.getWallet("user-uuid-124");
+    console.log("Wallet address:", result);
+  }
+
+  document.getElementById("connectBtn")
+    .addEventListener("click", test_connection);
+</script>
+
+
+  <!--<script type="module" src="./main.js"></script>!--> 
+  
 </body>
 </html>
