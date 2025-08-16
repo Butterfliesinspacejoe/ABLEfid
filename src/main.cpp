@@ -12,8 +12,8 @@ std::string pad_to_32bytes(const std::string& input) {
     }
     while(hex.length() < 64) {
         hex = "0" + hex; // Pad with leading zeros
-        return hex;
     }
+    return hex;
 }
 
 size_t writeCallback(char* ptr, size_t size, size_t nmemb, void* uploadedData){
@@ -91,50 +91,77 @@ int main() {
         return 1;
     }
 
+    std::string from = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"; // Wallet address
+    std::string executor = "0xB0f3A4aE1fDC1068f9364c5d7b1E42678B66D941"; // Contract address
+    //Tokens ERC 20 contract adresses in and out
     std::string tokenIn = "0xd5660525C2378294bfe3b8197f714CcBFD6654bb";
     std::string tokenOut = "0x6D490044dC1CA783A22cE1eEb1E4443fa16A961c";
-    std::string amountIn = "0x1f4"; // 500 in hex
 
-    // Function selector for getAmountsOut(uint256, address, address)
-    std::string selector = "43ecfa0a";
+    std::string feeHex = "0x1f4";
+    std::string amountInHex = "0x0f4240";
+    std::string minOutHex = "0x0"; // start with 0 to avoid slippage checks while testing
 
-    std::string amountInPadded = pad_to_32bytes(amountIn);
-    std::string tokenInPadded = pad_to_32bytes(tokenIn);
-    std::string tokenOutPadded = pad_to_32bytes(tokenOut);
+    std::string approveSelector = "095ea7b3";
+    std::string approveData = "0x" + approveSelector + pad_to_32bytes(executor) + pad_to_32bytes(amountInHex);
 
-    if(amountInPadded.empty() || tokenInPadded.empty() || tokenOutPadded.empty()){
-        std::cerr << "Error::Failed to pad input values\n";
+
+    nlohmann::json approveTx = {
+        {"jsonrpc", "2.0"},
+        {"method", "eth_sendTransaction"},
+        {"params", nlohmann::json::array({
+            {
+                {
+                    {"from", from},
+                    {"to", tokenIn},
+                    {"data",approveData},
+                    {"value", "0x0"}
+                }
+            }
+        })
+        }
+    };
+
+    std::optional<std::string> approveResp = rpc_call(url, approveTx);
+    if(!approveResp){
+        std::cerr << "approve: no response\n";
         curl_global_cleanup();
         return 1;
     }
-
-    std::string data = "0x" + selector + amountInPadded + tokenInPadded + tokenOutPadded;
     
-    nlohmann::json j = {
+    
+    std::cout << "Approve response: " << *approveResp << "\n";
+
+
+    // Second part of the fixing:
+
+    std::string swapSelector = "43ecfa0a";
+    std::string data = "0x" + swapSelector + pad_to_32bytes(tokenIn) + pad_to_32bytes(tokenOut) 
+        + pad_to_32bytes(feeHex) + pad_to_32bytes(amountInHex) + pad_to_32bytes(minOutHex);
+
+    
+    nlohmann::json swapTx = {
         {"jsonrpc", "2.0"},
-        {"method", "eth_call"},
+        {"method", "eth_sendTransaction"},
         {"params", nlohmann::json::array({
             {
-                {"to", "0xB0f3A4aE1fDC1068f9364c5d7b1E42678B66D941"},
-                {"data", data}
-            },
-            "latest"
+                {"from", from}, // Wallet address EOA
+                {"to", executor}, // Contract address
+                {"data", data},
+                {"value", "0x0"}
+            }
         })},
         {"id", 1}
     };
 
 
-    std::optional<std::string> response = rpc_call(url, j);
-    if(!response){
-        std::cerr << "Error::Failed to get a valid response\n";
+    std::optional<std::string> swapResp = rpc_call(url, swapTx);
+    if(!swapResp){
+        std::cerr << "swap: no response\n";
         curl_global_cleanup();
         return 1;
     }
-    
-    std::cout << "Response: " << *response << "\n";
 
-
-
+    std::cout << "Swap resp: " << *swapResp << "\n";
 
 
 
