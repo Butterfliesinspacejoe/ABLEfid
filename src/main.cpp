@@ -27,7 +27,7 @@ size_t writeCallback(char* ptr, size_t size, size_t nmemb, void* uploadedData){
     return size * nmemb; 
 }
 
-std::optional<std::string> rpc_call(const std::string& url, nlohmann::json& j){
+std::optional<std::string> rpc_call(const std::string& url, const nlohmann::json& j){
     if(url.empty()){
         std::cerr << "Error::URL is empty\n";
         return std::nullopt;
@@ -40,6 +40,8 @@ std::optional<std::string> rpc_call(const std::string& url, nlohmann::json& j){
     }
 
     std::string body = j.dump();
+    std::cout << "\n--- SENDING ---\n" << body << "\n--------------\n";
+    
     if(body.empty()){
         std::cerr << "Error::Request body is empty\n";
         curl_easy_cleanup(curl);
@@ -59,7 +61,9 @@ std::optional<std::string> rpc_call(const std::string& url, nlohmann::json& j){
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
-
+    // Just temporary check for stupid bugs
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(curl, CURLOPT_STDERR, stderr);
 
     CURLcode res = curl_easy_perform(curl);
     if(res != CURLE_OK){
@@ -103,22 +107,23 @@ int main() {
 
     std::string approveSelector = "095ea7b3";
     std::string approveData = "0x" + approveSelector + pad_to_32bytes(executor) + pad_to_32bytes(amountInHex);
+    if(approveData.rfind("0x095ea7b3", 0) != 0 || approveData.size() != 138) {
+        std::cerr << "approveData failed: size =" << approveData.size() << "data= " << approveData << "\n";
+    }
 
-
+    // Approve the transaction so the executor can spend something 
     nlohmann::json approveTx = {
         {"jsonrpc", "2.0"},
+        {"id", 1},
         {"method", "eth_sendTransaction"},
         {"params", nlohmann::json::array({
             {
-                {
-                    {"from", from},
-                    {"to", tokenIn},
-                    {"data",approveData},
-                    {"value", "0x0"}
-                }
+                {"from", from},
+                {"to", tokenIn},
+                {"data",approveData},
+                {"value", "0x0"}
             }
-        })
-        }
+        })}
     };
 
     std::optional<std::string> approveResp = rpc_call(url, approveTx);
@@ -137,7 +142,9 @@ int main() {
     std::string swapSelector = "43ecfa0a";
     std::string data = "0x" + swapSelector + pad_to_32bytes(tokenIn) + pad_to_32bytes(tokenOut) 
         + pad_to_32bytes(feeHex) + pad_to_32bytes(amountInHex) + pad_to_32bytes(minOutHex);
-
+    if(data.rfind("0x43ecfa0a", 0) != 0 || data.size() != 330) {
+        std::cerr << "swap data failed: size=" << data.size() << "data= " << data << "\n";
+    }
     
     nlohmann::json swapTx = {
         {"jsonrpc", "2.0"},
@@ -150,7 +157,7 @@ int main() {
                 {"value", "0x0"}
             }
         })},
-        {"id", 1}
+        {"id", 2}
     };
 
 
