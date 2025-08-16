@@ -4,7 +4,17 @@
 #include <string>
 #include <optional>
 
-
+// Helper to pad hex strings to 64 chars(32 bytes)
+std::string pad_to_32bytes(const std::string& input) {
+    std::string hex = input;
+    if(hex.rfind("0x", 0) == 0 || hex.rfind("0X", 0) == 0) {
+        hex = hex.substr(2); // Remove "0x" prefix
+    }
+    while(hex.length() < 64) {
+        hex = "0" + hex; // Pad with leading zeros
+        return hex;
+    }
+}
 
 size_t writeCallback(char* ptr, size_t size, size_t nmemb, void* uploadedData){
     std::string* out = static_cast<std::string*>(uploadedData);
@@ -80,15 +90,33 @@ int main() {
         curl_global_cleanup();
         return 1;
     }
+
+    std::string tokenIn = "0xd5660525C2378294bfe3b8197f714CcBFD6654bb";
+    std::string tokenOut = "0x6D490044dC1CA783A22cE1eEb1E4443fa16A961c";
+    std::string amountIn = "0x1f4"; // 500 in hex
+
+    // Function selector for getAmountsOut(uint256, address, address)
+    std::string selector = "43ecfa0a";
+
+    std::string amountInPadded = pad_to_32bytes(amountIn);
+    std::string tokenInPadded = pad_to_32bytes(tokenIn);
+    std::string tokenOutPadded = pad_to_32bytes(tokenOut);
+
+    if(amountInPadded.empty() || tokenInPadded.empty() || tokenOutPadded.empty()){
+        std::cerr << "Error::Failed to pad input values\n";
+        curl_global_cleanup();
+        return 1;
+    }
+
+    std::string data = "0x" + selector + amountInPadded + tokenInPadded + tokenOutPadded;
     
-    // ...existing code...
     nlohmann::json j = {
         {"jsonrpc", "2.0"},
         {"method", "eth_call"},
         {"params", nlohmann::json::array({
             {
                 {"to", "0xB0f3A4aE1fDC1068f9364c5d7b1E42678B66D941"},
-                {"data", "0x43ecfa0a00000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c8000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000001f400000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000dbba0"}
+                {"data", data}
             },
             "latest"
         })},
