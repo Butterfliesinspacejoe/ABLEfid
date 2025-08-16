@@ -1,49 +1,19 @@
-const MAGIC_PUBLISHABLE_KEY = 'pk_live_8A7A254AFE5756EC'; // set from Magic dashboard
+import { Magic } from 'https://cdn.jsdelivr.net/npm/magic-sdk@latest/dist/magic.js';
+import * as fcl from "https://cdn.jsdelivr.net/npm/@onflow/fcl/dist/fcl.min.js";
 
-let magic;
-function initMagic() {
-  if (!window.Magic) {
-    alert('Magic SDK not loaded'); return;
+const MAGIC_PUBLISHABLE_KEY = "pk_live_replace_me"; // replace with your Magic publishable key
+
+// Initialize Magic with Flow extension
+const magic = new Magic(MAGIC_PUBLISHABLE_KEY, { extensions: { flow: new Magic.FlowExtension({ rpcUrl: "https://rest-testnet.onflow.org" }) } });
+
+document.getElementById("loginBtn")?.addEventListener("click", async () => {
+  try {
+    const accounts = await magic.auth.loginWithEmailOTP({ email: prompt("Enter email:") });
+    const meta = await magic.user.getMetadata();
+    document.getElementById("userMeta").textContent = JSON.stringify(meta, null, 2);
+    localStorage.setItem("magicUser", JSON.stringify(meta));
+    window.location.href = "dashboard.html";
+  } catch (err) {
+    console.error(err);
   }
-  magic = new window.Magic(MAGIC_PUBLISHABLE_KEY);
-}
-
-async function loginWithEmail(email) {
-  // Uses Magic email OTP (popup UI). You can switch to loginWithMagicLink if preferred.
-  return await magic.auth.loginWithEmailOTP({ email, showUI: true });
-}
-
-async function getUser() {
-  const meta = await magic.user.getMetadata();
-  const isLoggedIn = await magic.user.isLoggedIn();
-  return { isLoggedIn, ...meta };
-}
-
-async function logout() { try { await magic.user.logout(); } catch(e){ console.error(e); } }
-
-(function(){
-  const yearEl=document.getElementById('year'); if(yearEl) yearEl.textContent=new Date().getFullYear();
-  initMagic();
-
-  const form=document.getElementById('loginForm');
-  const status=document.getElementById('status');
-  if(form){
-    form.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const email=(document.getElementById('email')||{}).value;
-      if(!email){ status.textContent='Please enter your email.'; return; }
-      status.textContent='Sending login link...';
-      try {
-        await loginWithEmail(email);
-        status.textContent='Logged in! Redirecting...';
-        const user=await getUser();
-        localStorage.setItem('ablefid_session','true');
-        localStorage.setItem('ablefid_user', JSON.stringify(user || {}));
-        window.location.href='dashboard.html';
-      } catch(err){
-        console.error(err);
-        status.textContent='Login failed. Please try again.';
-      }
-    });
-  }
-})();
+});

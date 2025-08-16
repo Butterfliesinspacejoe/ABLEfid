@@ -1,0 +1,11 @@
+:root{--text:#0f172a;--muted:#475569;--brand:#4f46e5;--brand-700:#4338ca}
+*{box-sizing:border-box} body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Arial}
+.container{max-width:1000px;margin:0 auto;padding:24px}
+.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+.logo{width:28px;height:28px;border-radius:8px;background:radial-gradient(circle at 30% 30%,#a5b4fc,#6366f1 60%,#4338ca)}
+h1{margin:0 0 12px} .subtitle{color:var(--muted)}
+.btn{display:inline-block;padding:10px 16px;border-radius:12px;border:1px solid var(--brand);color:var(--brand);text-decoration:none}
+.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)} .btn.primary:hover{background:var(--brand-700)}
+.card{border:1px solid #e2e8f0;border-radius:14px;padding:16px;margin:10px 0}
+input[type=email],input[type=text]{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:10px}
+pre{white-space:pre-wrap;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ABLEfid — Dashboard (Flow Testnet)</title>
+  <link rel="stylesheet" href="./ablefid.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="../" class="brand"><span class="logo"></span><span class="brand-name">ABLEfid</span></a>
+    </header>
+
+    <section style="padding-top:16px">
+      <h1>Your Flow Session</h1>
+      <p class="subtitle">Paste your Flow <strong>testnet</strong> address (or we’ll use Magic `publicAddress` if present) and check balance.</p>
+
+      <article class="card">
+        <h3>Session</h3>
+        <pre id="userJson"></pre>
+      </article>
+
+      <article class="card">
+        <h3>Address & Balance</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+          <input id="flowAddr" placeholder="0xYourFlowTestnetAddress" />
+          <button id="checkBal" class="btn primary">Check Balance</button>
+        </div>
+        <div class="subtitle" id="balStatus"></div>
+      </article>
+    </section>
+
+    <section class="card">
+      <a class="btn" href="./login.html">Switch Account</a>
+    </section>
+  </div>
+
+  <script type="module" src="./dashboard_flow.js"></script>
+</body>
+</html>
