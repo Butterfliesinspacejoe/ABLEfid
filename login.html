@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ABLEfid — Login</title>
+  <link rel="stylesheet" href="assets/ablefid.css">
+  <script src="https://cdn.jsdelivr.net/npm/magic-sdk@latest/dist/magic.js"></script>
+</head>
+<body>
+  <div class="container" style="max-width:560px">
+    <header>
+      <a href="index.html" class="brand"><span class="logo" aria-hidden="true"></span><span class="brand-name">ABLEfid</span></a>
+    </header>
+
+    <section class="hero" style="padding-top:32px">
+      <h1 class="title">Login with Email</h1>
+      <p class="subtitle">We use a passwordless, email-based wallet to keep things simple and secure.</p>
+
+      <form id="loginForm" class="card" style="text-align:left">
+        <label for="email"><strong>Email</strong></label>
+        <input id="email" name="email" type="email" required placeholder="you@example.com"
+               style="width:100%;margin:8px 0 12px;padding:12px;border:1px solid #cbd5e1;border-radius:10px" />
+        <button type="submit" class="btn btn-primary" style="width:100%">Send Login Link</button>
+        <p id="status" class="subtitle" style="margin-top:12px"></p>
+      </form>
+
+      <div class="card" style="margin-top:16px">
+        <p style="margin:0;font-size:.95rem;color:#475569">
+          By logging in, a non-custodial keypair is created for you. No seed phrase to manage. You can log in again with your email to recover access.
+        </p>
+      </div>
+    </section>
+
+    <footer>
+      <span id="year"></span> © ABLEfid. All rights reserved.
+    </footer>
+  </div>
+
+  <script src="assets/auth.js"></script>
+</body>
+</html>

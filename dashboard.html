@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ABLEfid — Dashboard</title>
+  <link rel="stylesheet" href="assets/ablefid.css">
+  <script src="https://cdn.jsdelivr.net/npm/magic-sdk@latest/dist/magic.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header aria-label="Site header">
+      <a href="index.html" class="brand" aria-label="ABLEfid home">
+        <span class="logo" aria-hidden="true"></span>
+        <span class="brand-name">ABLEfid</span>
+      </a>
+      <nav class="nav-actions" aria-label="Primary">
+        <button class="btn btn-outline" id="logoutBtn">Logout</button>
+      </nav>
+    </header>
+
+    <section class="hero" style="padding-top:32px">
+      <h1 class="title">Welcome to your Dashboard</h1>
+      <p class="subtitle">Below is your session info. Use this page to wire wallet actions next.</p>
+
+      <article class="card" id="userCard">
+        <h3>Session</h3>
+        <pre id="userJson" style="white-space:pre-wrap;margin:0;color:#0f172a;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0;"></pre>
+      </article>
+
+      <div class="cta" style="margin-top:16px">
+        <a class="btn btn-primary" href="#" id="actionSend">Send USDC (placeholder)</a>
+        <a class="btn btn-outline" href="#" id="actionReceive">Show Address (placeholder)</a>
+      </div>
+    </section>
+
+    <footer>
+      <span id="year"></span> © ABLEfid. All rights reserved.
+    </footer>
+  </div>
+
+  <script src="assets/auth.js"></script>
+  <script>
+    (async function(){
+      const yearEl=document.getElementById('year'); if(yearEl) yearEl.textContent=new Date().getFullYear();
+      const sessionOk = localStorage.getItem('ablefid_session') === 'true';
+      if(!sessionOk){ window.location.href='login.html'; return; }
+      const user = JSON.parse(localStorage.getItem('ablefid_user')||'{}');
+      document.getElementById('userJson').textContent = JSON.stringify(user, null, 2);
+
+      document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+        await logout();
+        localStorage.removeItem('ablefid_session');
+        localStorage.removeItem('ablefid_user');
+        window.location.href='index.html';
+      });
+    })();
+  </script>
+</body>
+</html>
