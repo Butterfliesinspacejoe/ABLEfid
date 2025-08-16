@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ABLEfid — Dashboard</title>
   <link rel="stylesheet" href="assets/ablefid.css">
+  <!-- Magic UMD (exposes window.Magic) -->
   <script src="https://cdn.jsdelivr.net/npm/magic-sdk@latest/dist/magic.js"></script>
 </head>
 <body>
@@ -34,27 +35,35 @@
       </div>
     </section>
 
+    <!-- Wallet mapping panels (inside container for styling) -->
+    <section class="card">
+      <h3>Lookup Wallet Mapping</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="uuidInput" placeholder="user-uuid-123" />
+        <button id="getWalletBtn" class="btn primary">Get Wallet</button>
+      </div>
+      <div id="walletResult" class="subtitle" style="margin-top:8px"></div>
+    </section>
+
+    <section class="card">
+      <h3>Admin: Set Mapping</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+        <input id="uuidSet" placeholder="user-uuid-123" />
+        <input id="addrSet" placeholder="0xAbc123..." />
+        <button id="btnSet" class="btn">Set Wallet</button>
+      </div>
+      <div id="outSet" class="subtitle"></div>
+      <small>Note: this sends a transaction; you’ll need test gas on Flow EVM Testnet.</small>
+    </section>
+
     <footer>
       <span id="year"></span> © ABLEfid. All rights reserved.
     </footer>
   </div>
 
-  <script src="assets/auth.js"></script>
   <script>
-    (async function(){
-      const yearEl=document.getElementById('year'); if(yearEl) yearEl.textContent=new Date().getFullYear();
-      const sessionOk = localStorage.getItem('ablefid_session') === 'true';
-      if(!sessionOk){ window.location.href='login.html'; return; }
-      const user = JSON.parse(localStorage.getItem('ablefid_user')||'{}');
-      document.getElementById('userJson').textContent = JSON.stringify(user, null, 2);
+    // Footer year
+    const yearEl=document.getElementById('year'); if(yearEl) yearEl.textContent=new Date().getFullYear();
 
-      document.getElementById('logoutBtn').addEventListener('click', async ()=>{
-        await logout();
-        localStorage.removeItem('ablefid_session');
-        localStorage.removeItem('ablefid_user');
-        window.location.href='index.html';
-      });
-    })();
-  </script>
-</body>
-</html>
+    // Minimal session gate using localStorage
+    const sessionOk = local
