@@ -1,3 +1,13 @@
+/* 
+ * File:        main.cpp
+ * Author:      Viachelsav Markov
+ * Created on: 2025-08-16
+ * Description: Minimal Ethereum JSON-RPC client using libcurl and nlohmann::json.
+ *              Builds ABI calldata to send ERC-20 approve, verifies allowance via
+ *              eth_call, and submits swapExactInSingle to a deployed SwapExecutorV3,
+ *              then polls transaction receipts with verbose debug logging.
+ */
+
 #include <iostream>
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
@@ -6,12 +16,15 @@
 #include <thread>
 #include <chrono>
 
-
+// Function prototypes
 nlohmann::json wait_receipt(const std::string& url, const std::string& txhash);
 std::string pad_to_32bytes(const std::string& input); // Helper to pad hex strings to 64 chars(32 bytes)
 size_t writeCallback(char* ptr, size_t size, size_t nmemb, void* uploadedData);
 std::optional<std::string> rpc_call(const std::string& url, const nlohmann::json& j);
+static std::string strip0x(std::string s);
+static uint64_t hex_to_u64(std::string s);
 
+// Main function
 int main() {
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -100,14 +113,28 @@ int main() {
         })}
     };
 
-
     std::optional<std::string> allowResp = rpc_call(url, allowCall);
     if(!allowResp){
         std::cerr << "allowance: no response\n";
         curl_global_cleanup();
         return 1;
     }
+    std::cout << "allowance response: " << *allowResp << "\n";
 
+    nlohmann::json allowJson = nlohmann::json::parse(*allowResp);
+    std::string allowHex = allowJson.value("result", "0x0");
+    uint64_t allowU64 = hex_to_u64(allowHex);
+    uint64_t amountInU64 = hex_to_u64(amountInHex);
+
+    std::cout << "allowance: (u64) = " << allowU64 << " ; amountIn: (u64) = " << amountInU64 << "\n";
+
+    if(allowU64 >= amountInU64){
+        std::cout << "allowance is sufficient!\n";
+    }else{
+        std::cout << "allowance is insufficient :( \n";
+        curl_global_cleanup();
+        return 1;
+    }
 
     std::string swapSelector = "43ecfa0a";
     std::string data = "0x" + swapSelector + pad_to_32bytes(tokenIn) + pad_to_32bytes(tokenOut) 
@@ -130,7 +157,6 @@ int main() {
         {"id", 2}
     };
 
-
     std::optional<std::string> swapResp = rpc_call(url, swapTx);
     if(!swapResp){
         std::cerr << "swap: no response\n";
@@ -140,7 +166,6 @@ int main() {
 
     std::cout << "Swap resp: " << *swapResp << "\n";
 
-
     //Parsing txhash
     nlohmann::json sj = nlohmann::json::parse(*swapResp);
     if(sj.contains("error")) {
@@ -149,7 +174,6 @@ int main() {
         return 1;
     }
     std::string swapHash = sj["result"].get<std::string>();
-
 
     nlohmann::json swapRcpt = wait_receipt(url, swapHash);
     std::cout << "swap status: " << swapRcpt.value("status", "0x?") << "\n";
@@ -161,19 +185,11 @@ int main() {
         std::cout << "swap successfull\n";
     }
     
-
-
     curl_global_cleanup();
-    return 0;
-
-    
-    
+    return 0; 
 }
 
-
-
-
-
+// Function to wait for a transaction receipt
 nlohmann::json wait_receipt(const std::string& url, const std::string& txhash){
     for(int i = 0; i < 40; ++i){
         nlohmann::json req = {
@@ -195,7 +211,6 @@ nlohmann::json wait_receipt(const std::string& url, const std::string& txhash){
     throw std::runtime_error("timeout waiting for reciept");
 }
 
-
 // Helper to pad hex strings to 64 chars(32 bytes)
 std::string pad_to_32bytes(const std::string& input) {
     std::string hex = input;
@@ -208,6 +223,7 @@ std::string pad_to_32bytes(const std::string& input) {
     return hex;
 }
 
+// Callback function to write response data
 size_t writeCallback(char* ptr, size_t size, size_t nmemb, void* uploadedData){
     std::string* out = static_cast<std::string*>(uploadedData);
     if(!out){
@@ -219,6 +235,7 @@ size_t writeCallback(char* ptr, size_t size, size_t nmemb, void* uploadedData){
     return size * nmemb; 
 }
 
+// Function to perform the RPC call
 std::optional<std::string> rpc_call(const std::string& url, const nlohmann::json& j){
     if(url.empty()){
         std::cerr << "Error::URL is empty\n";
@@ -243,8 +260,6 @@ std::optional<std::string> rpc_call(const std::string& url, const nlohmann::json
     curl_slist* headers = nullptr;
     headers = curl_slist_append(headers, "Content-Type: application/json");
 
-
-
     std::string response;
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -264,7 +279,6 @@ std::optional<std::string> rpc_call(const std::string& url, const nlohmann::json
         return std::nullopt;
     }
 
-
     curl_easy_cleanup(curl);
     curl_slist_free_all(headers);
 
@@ -275,6 +289,33 @@ std::optional<std::string> rpc_call(const std::string& url, const nlohmann::json
 
     return response;
 }
+
+// Function to strip "0x" prefix from a hex string
+static std::string strip0x(std::string s){
+    if(s.rfind("0x", 0) == 0 || s.rfind("0X", 0) == 0) {
+        s = s.substr(2); // Removing "0x" frm the beginning
+        return s;
+    }
+    return s; // return original if no 0x
+}
+
+// Function to convert a hex string to a uint64_t value
+static uint64_t hex_to_u64(std::string s){
+    s = strip0x(s);
+    if(s.size() > 16){
+        s = s.substr(s.size() - 16); 
+    }
+    uint64_t value = 0;
+    for(char c : s){
+        value <<=4; //Shift left by 4 bits
+        if (c >= '0' && c <= '9') value |= (uint64_t)(c - '0');
+        else if(c >= 'a' && c <= 'f') value |= (uint64_t)(10 + c - 'a');
+        else if(c >= 'A' && c<= 'F') value |= (uint64_t)(10 + c - 'A');
+    }
+    return value;
+}
+
+
 
 
 
