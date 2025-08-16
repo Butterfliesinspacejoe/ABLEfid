@@ -54,12 +54,20 @@
     <h1>Test the connection to the smart contract!</h1>
     <button id="connectBtn">Connect</button>
 
+    <h1>Wallet result:</h1>
+    <div id="wallet_result"></div>
+
     <footer>
       <span id="year"></span> © ABLEfid. All rights reserved.
     </footer>
   </div>
 
 
+
+  
+
+
+  <!--Inline script to just load smart contract addr-->
   <script type="module">
   import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.min.js";
 
@@ -76,14 +84,13 @@
     const contract = new ethers.Contract(contractAddress, abi, provider);
     const result = await contract.getWallet("user-uuid-124");
     console.log("Wallet address:", result);
+    let walletDiv = document.getElementById("wallet_result")
+    walletDiv.innerText = result
   }
 
   document.getElementById("connectBtn")
     .addEventListener("click", test_connection);
 </script>
-
-
-  <!--<script type="module" src="./main.js"></script>!--> 
   
 </body>
 </html>
