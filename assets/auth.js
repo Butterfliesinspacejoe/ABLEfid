@@ -1,4 +1,4 @@
-const MAGIC_PUBLISHABLE_KEY = 'pk_live_or_test_replace_me'; // set from Magic dashboard
+const MAGIC_PUBLISHABLE_KEY = 'pk_live_8A7A254AFE5756EC'; // set from Magic dashboard
 
 let magic;
 function initMagic() {
