@@ -64,6 +64,11 @@ header {
     letter-spacing: 0.2px;
 }
 
+.brand .logo-img {
+    height: 32px; /* adjust size */
+    width: auto;
+  }
+
 .nav-actions {
     display: flex;
     gap: 10px;
