@@ -52,7 +52,14 @@
     <a class="btn" href="/demos/flow/login.html">Flow Testnet Login</a>
 
     <h1>Test the connection to the smart contract!</h1>
+    <input type="text" placeholder="Enter a UUID to get a wallet address!" id="userID">
     <button id="connectBtn">Connect</button>
+
+    <h1>Create an account instead!</h1>
+    <input type="text" placeholder="Enter the uuid" id="createUser">
+    <button id="createButton">Connect</button>
+
+
 
     <h1>Wallet result:</h1>
     <div id="wallet_result"></div>
@@ -64,32 +71,88 @@
 
 
 
-  
-
-
   <!--Inline script to just load smart contract addr-->
   <script type="module">
-  import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.min.js";
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.min.js";
+    const rpcUrl = "https://testnet.evm.nodes.onflow.org";
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
 
-  const rpcUrl = "https://testnet.evm.nodes.onflow.org";
-  const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const contractAddress = "0xE0668BAc6c1E123CbC72e6096C267Eabb117A79A"; //.env?
+    const abi = [
+      "function getWallet(string) view returns (address)"
+    ];
+    
+    //user-uuid-124
+    //uuid-12345
+    //Get wallet address
+    async function test_connection() {
+      console.log("Connecting to Flow testnet…");
+      const userElement = document.getElementById('userID')
+      const user = userElement.value
+      
+      console.log(`Testing user ${user}`)
+      const contract = new ethers.Contract(contractAddress, abi, provider);
+      const result = await contract.getWallet(user);
+      console.log("Wallet address:", result);
+      let walletDiv = document.getElementById("wallet_result")
+      walletDiv.innerText = result
+    }
 
-  const contractAddress = "0x4761969E2FF16EE14EF91D22685DdE96621bc415";
-  const abi = [
-    "function getWallet(string) view returns (address)"
-  ];
+    document.getElementById("connectBtn").addEventListener("click", test_connection);
+    //document.getElementById("createButton").addEventListener("click", create_account);
 
-  async function test_connection() {
-    console.log("Connecting to Flow testnet…");
-    const contract = new ethers.Contract(contractAddress, abi, provider);
-    const result = await contract.getWallet("user-uuid-124");
-    console.log("Wallet address:", result);
-    let walletDiv = document.getElementById("wallet_result")
-    walletDiv.innerText = result
+
+
+    //Create Account
+    async function create_account(){
+      console.log("hi!")
+      
+
+      //Helper
+      function randomFlowAddress() {
+        // 8 random bytes → 16 hex chars
+        let addr = [...crypto.getRandomValues(new Uint8Array(20))]
+          .map(b => b.toString(16).padStart(2, "0"))
+          .join("");
+        return "0x" + addr;
+      }
+
+      //Setup info
+      const RPC_URL = "https://testnet.evm.nodes.onflow.org";
+      const PRIVATE_KEY = "0xcaac23ba960094ee4958423a549ea904331167423f8091fa244a603a58a24704"; //.env, Our dev wallet to pay for this transaction
+      const CONTRACT_ADDRESS = "0xE0668BAc6c1E123CbC72e6096C267Eabb117A79A"; //.env
+      
+      //Get the user input
+      const userToAddElement = document.getElementById('createUser')
+      const userToAdd = userToAddElement.value
+
+      //Get the contract abi
+      const artifact = await fetch("/assets/FlowDB.json").then(res => res.json());
+      const abi = artifact.abi;
+      
+      //Get the provider (testnet)
+      const provider = new ethers.JsonRpcProvider(RPC_URL);
+      const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, wallet);
+
+      //Create a random wallet
+      const clientWallet = ethers.Wallet.createRandom().connect(provider);
+      console.log(`This is your address, save it!!! ${clientWallet.address}`)
+      console.log(`This is your private key, save it!!! ${clientWallet.privateKey}`)
+  
+      
+      const addressToAdd = clientWallet.address
+      const tx = await contract.setWallet(userToAdd, addressToAdd, { //Those two arguments should be variables
+        gasLimit: 500_000,
+      });
+
+      const receipt = await tx.wait();
+      console.log("Sucessful! This is the block no. - ", receipt.blockNumber);
+
   }
+  
+  document.getElementById("createButton").addEventListener("click", create_account);
 
-  document.getElementById("connectBtn")
-    .addEventListener("click", test_connection);
 </script>
   
 </body>

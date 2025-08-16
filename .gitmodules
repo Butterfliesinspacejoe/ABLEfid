@@ -1,0 +1,3 @@
+[submodule "src/deploy/database/lib/forge-std"]
+	path = src/deploy/database/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
