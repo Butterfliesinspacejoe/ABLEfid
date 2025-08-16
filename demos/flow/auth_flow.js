@@ -3,7 +3,7 @@ import { FlowExtension } from 'https://cdn.jsdelivr.net/npm/@magic-ext/flow/+esm
 import * as fcl from 'https://cdn.jsdelivr.net/npm/@onflow/fcl@1.6.2/dist/fcl.browser.min.js';
 
 // Set your Magic publishable key (pk_live_... is fine for hackathon)
-const MAGIC_PUBLISHABLE_KEY = 'pk_live_replace_me';
+const MAGIC_PUBLISHABLE_KEY = 'pk_live_8A7A254AFE5756EC';
 
 // Configure FCL for Flow testnet
 fcl.config()
