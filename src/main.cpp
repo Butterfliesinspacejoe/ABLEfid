@@ -6,6 +6,7 @@
  *              Builds ABI calldata to send ERC-20 approve, verifies allowance via
  *              eth_call, and submits swapExactInSingle to a deployed SwapExecutorV3,
  *              then polls transaction receipts with verbose debug logging.
+ *              This code was Written by human using Copilot AI.
  */
 
 #include <iostream>
