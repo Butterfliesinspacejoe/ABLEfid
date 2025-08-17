@@ -1,3 +1,9 @@
 [submodule "src/deploy/database/lib/forge-std"]
 	path = src/deploy/database/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "src/deploy/coolCoin/lib/forge-std"]
+	path = src/deploy/coolCoin/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "src/deploy/coolCoin/lib/openzeppelin-contracts"]
+	path = src/deploy/coolCoin/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts

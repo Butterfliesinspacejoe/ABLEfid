@@ -64,6 +64,20 @@
     <h1>Wallet result:</h1>
     <div id="wallet_result"></div>
 
+    <h1>Purchase stable coolcoin</h1>
+
+    <button id="connect">Connect MetaMask</button>
+    <input id="usdValue" type="number" value="1" min="1">
+    <button id="purchase">Purchase</button>
+
+
+
+    <!-- UI -->
+    <h1>Redeem</h1>
+    <input id="redeemValue" type="number" value="1" min="0" step="0.01" />
+    <button id="redeemBtn">Redeem CoolCoin</button>
+    <pre id="redeemLog"></pre>
+
     <footer>
       <span id="year"></span> © ABLEfid. All rights reserved.
     </footer>
@@ -82,10 +96,15 @@
       "function getWallet(string) view returns (address)"
     ];
     
+
+
+    //-------------------------------------GET THE WALLET BY UUID-------------------------------
+
+    
     //user-uuid-124
     //uuid-12345
     //Get wallet address
-    async function test_connection() {
+    async function get_wallet() {
       console.log("Connecting to Flow testnet…");
       const userElement = document.getElementById('userID')
       const user = userElement.value
@@ -96,26 +115,19 @@
       console.log("Wallet address:", result);
       let walletDiv = document.getElementById("wallet_result")
       walletDiv.innerText = result
+      localStorage.setItem("userAddress", result);
     }
 
-    document.getElementById("connectBtn").addEventListener("click", test_connection);
+    document.getElementById("connectBtn").addEventListener("click", get_wallet);
+    
     //document.getElementById("createButton").addEventListener("click", create_account);
 
 
 
+    //---------------------------------------------CREATE AN ACCOUNT--------------------------------------
+
     //Create Account
     async function create_account(){
-      console.log("hi!")
-      
-
-      //Helper
-      function randomFlowAddress() {
-        // 8 random bytes → 16 hex chars
-        let addr = [...crypto.getRandomValues(new Uint8Array(20))]
-          .map(b => b.toString(16).padStart(2, "0"))
-          .join("");
-        return "0x" + addr;
-      }
 
       //Setup info
       const RPC_URL = "https://testnet.evm.nodes.onflow.org";
@@ -153,6 +165,118 @@
   
   document.getElementById("createButton").addEventListener("click", create_account);
 
+
+
+
+//make sure metamask on right network
+
+const FLOW_CHAIN_ID = "0x221"; // 545 decimal
+
+async function switchToFlowTestnet() {
+  try {
+    // Try switching first
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: FLOW_CHAIN_ID }],
+    });
+  } catch (switchError) {
+    // If the chain isn’t added, add it then switch
+    if (switchError.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: FLOW_CHAIN_ID,
+          chainName: "Flow EVM Testnet",
+          nativeCurrency: {
+            name: "Flow",
+            symbol: "FLOW",
+            decimals: 18,
+          },
+          rpcUrls: ["https://testnet.evm.nodes.onflow.org"],
+          blockExplorerUrls: ["https://evm-testnet.flowscan.io"],
+        }],
+      });
+    } else {
+      throw switchError;
+    }
+  }
+}
+
+//--------------------------------------------------PAY "MONEY" FOR STABLE COIN COOLCOIN--------------------------//
+    
+      let contract, signer;
+
+
+      const CONTRACT_ADDRESS = "0xe34A005185EF623244e58C8E172B8130b7EdF394";
+      const artifactCoin = await fetch("/assets/coolCoin.json").then(res => res.json());
+      const coinABI = artifactCoin.abi;
+      
+
+      // Connect MetaMask
+      document.getElementById("connect").onclick = async () => {
+        if (!window.ethereum) return alert("Install MetaMask!");
+        await switchToFlowTestnet();
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        contract = new ethers.Contract(CONTRACT_ADDRESS, coinABI, signer);
+        console.log("Connected as:", await signer.getAddress());
+      };
+
+      // Mint CoolCoin
+      document.getElementById("purchase").onclick = async () => {
+        const usd = document.getElementById("usdValue").value;
+        if (!usd || usd <= 0) return alert("Enter amount > 0");
+
+        try {
+          const value = ethers.parseEther(usd.toString());
+          const tx = await contract.mint({ value });
+          console.log("Mint tx:", tx.hash);
+          await tx.wait();
+          console.log(`Minted ${usd} coolCoin`);
+        } catch (err) {
+          console.error(err);
+          console.log("Error:", err.message);
+        }
+      };
+          
+
+
+//-----------------------------------REDEEM COOL COIN FOR FLOW COINS---------------------------------------------//
+
+async function redeem() {
+    try {
+      if (!contract) return alert("Connect MetaMask first.");
+
+      const userAddr = await signer.getAddress();
+      const decimals = await contract.decimals();
+      const want = document.getElementById("redeemValue").value;
+      if (!want || Number(want) <= 0) return alert("Enter an amount > 0");
+
+      const amt = ethers.parseUnits(want.toString(), decimals);
+
+      
+      const bal = await contract.balanceOf(userAddr);
+      if (bal < amt) return alert("Not enough COOL to redeem that amount.");
+
+      const tx = await contract.redeem(amt);
+      console.log("Redeem tx:", tx.hash);
+      await tx.wait();
+      console.log(`✅ Redeemed ${want} COOL for Flow`);
+
+      // (Optional) show fresh balances
+      const newBal = await contract.balanceOf(userAddr);
+      console.log("Your COOL balance:", ethers.formatUnits(newBal, decimals));
+    } catch (err) {
+      console.error(err);
+      // Common revert reasons:
+      // - "Not enough tokens" (you don't hold that much)
+      // - "Not enough Flow in reserve" (contract lacks native coins to pay you back)
+      log("❌ Error:", err.message ?? String(err));
+    }
+  }
+
+  document.getElementById("redeemBtn").addEventListener("click", redeem);
 </script>
   
 </body>
