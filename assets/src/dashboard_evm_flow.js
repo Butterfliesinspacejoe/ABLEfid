@@ -13,10 +13,21 @@ function initMagic() {
 }
 
 async function getProvider() {
-  // Re-init Magic and use its EIP-1193 provider
-  const magic = initMagic();
-  return new ethers.BrowserProvider(magic.rpcProvider);
+  // 1. Prefer WalletConnect (if user connected via modal)
+  if (window.ABLEFID_ACTIVE_PROVIDER) {
+    return window.ABLEFID_ACTIVE_PROVIDER;
+  }
+
+  // 2. Fall back to Magic (if session exists)
+  if (window.MAGIC_PUBLISHABLE_KEY) {
+    const magic = initMagic();
+    return new ethers.BrowserProvider(magic.rpcProvider);
+  }
+
+  // 3. Last resort: read-only Flow EVM JSON-RPC provider
+  return new ethers.JsonRpcProvider("https://testnet.evm.nodes.onflow.org");
 }
+
 
 // READ: get mapped wallet by UUID
 export async function getWalletByUuid(uuid) {

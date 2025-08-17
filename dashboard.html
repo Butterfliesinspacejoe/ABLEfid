@@ -70,6 +70,41 @@
       <small>Note: this sends a transaction; you’ll need test gas on Flow EVM Testnet.</small>
     </section>
 
+    <!-- === External Wallet Connection (if not already present) === -->
+<section class="card">
+  <h3>External Wallet</h3>
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px">
+    <button id="btnConnectWC" class="btn primary">Connect Wallet (QR)</button>
+    <button id="btnDisconnectWC" class="btn btn-outline">Disconnect</button>
+  </div>
+  <p id="wcStatus" class="subtitle" style="margin-top:8px;color:#475569">Not connected</p>
+</section>
+
+<!-- === CoolCoin: Buy (Mint) === -->
+<section class="card">
+  <h3>Buy CoolCoin (Test Stable)</h3>
+  <p class="subtitle">Pay in FLOW (on Flow EVM Testnet) and mint CoolCoin 1:1 (demo).</p>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+    <button id="connectEvmBtn" class="btn">Connect (MetaMask / Wallet)</button>
+    <label for="usdValue"><strong>Amount</strong></label>
+    <input id="usdValue" type="number" value="1" min="1" step="1" />
+    <button id="purchase" class="btn btn-primary">Purchase</button>
+  </div>
+  <pre id="buyLog" style="margin-top:8px"></pre>
+</section>
+
+<!-- === CoolCoin: Redeem === -->
+<section class="card">
+  <h3>Redeem CoolCoin → FLOW</h3>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+    <label for="redeemValue"><strong>Amount</strong></label>
+    <input id="redeemValue" type="number" value="1" min="0" step="0.01" />
+    <button id="redeemBtn" class="btn">Redeem</button>
+  </div>
+  <pre id="redeemLog" style="margin-top:8px"></pre>
+</section>
+
+
     <footer>
       <span id="year"></span> © ABLEfid. All rights reserved.
     </footer>
@@ -120,10 +155,89 @@
   <script type="module" src="assets/src/db_abi.js"></script>
   <script type="module" src="assets/src/dashboard_evm_flow.js"></script>
 
-  <!-- WalletConnect / Web3Modal + ethers -->
-  <script src="https://unpkg.com/@web3modal/wallet@4"></script>
-  <script src="https://unpkg.com/@web3modal/ethers@4"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.min.js"></script>
-  <script type="module" src="assets/src/walletconnect_flow_evm.js"></script>
+<!-- WalletConnect EthereumProvider UMD + ethers UMD -->
+<script src="https://unpkg.com/@walletconnect/ethereum-provider/dist/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+
+<script type="module">
+  import { createWeb3Modal, defaultConfig } from './assets/vendor/web3modal-ethers-4/index.js';
+  import { ethers } from './assets/vendor/ethers-6.esm.js';
+
+  // --- REQUIRED: Reown/WalletConnect Cloud Project ID ---
+  const WC_PROJECT_ID = '74055d30710b9a6b5f28abdfd1224508';
+
+  // Flow EVM Testnet (CAIP-2 format for Web3Modal)
+  const chains = [{
+    chainId: 'eip155:545',
+    name: 'Flow EVM Testnet',
+    currency: 'FLOW',
+    rpcUrl: 'https://testnet.evm.nodes.onflow.org'
+  }];
+
+  const w3m = createWeb3Modal({
+    ethersConfig: defaultConfig({
+      metadata: {
+        name: 'ABLEfid',
+        description: 'ABLEfid — Flow EVM Testnet',
+        url: window.location.origin,
+        icons: [window.location.origin + '/favicon.ico']
+      }
+    }),
+    chains,
+    projectId: WC_PROJECT_ID
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const statusEl = $('wcStatus');
+
+  // Open/close
+  $('btnConnectWC')?.addEventListener('click', () => w3m.open());
+  $('btnDisconnectWC')?.addEventListener('click', () => w3m.disconnect());
+
+  // On connect, expose an ethers Provider for the rest of your app
+  window.addEventListener('w3m:connected', async () => {
+    try {
+      const provider = await w3m.getWalletProvider();   // ethers v6 Provider
+      const signer = await provider.getSigner();
+      const addr = await signer.getAddress();
+      if (statusEl) statusEl.textContent = `Connected: ${addr.slice(0,6)}…${addr.slice(-4)}`;
+
+      // Prefer WC provider for contract calls
+      window.ABLEFID_ACTIVE_PROVIDER = provider;
+
+      // Ensure Flow EVM Testnet (0x221 = 545)
+      const ethProvider = await w3m.getWalletProvider().then(p => p.provider);
+      try {
+        await ethProvider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x221' }] });
+      } catch {
+        try {
+          await ethProvider.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x221',
+              chainName: 'Flow EVM Testnet',
+              nativeCurrency: { name: 'FLOW', symbol: 'FLOW', decimals: 18 },
+              rpcUrls: ['https://testnet.evm.nodes.onflow.org'],
+              blockExplorerUrls: []
+            }]
+          });
+        } catch (e2) {
+          console.warn('add/switch chain failed', e2);
+        }
+      }
+    } catch (e) {
+      console.error('w3m connected handler error', e);
+    }
+  });
+
+  window.addEventListener('w3m:disconnected', () => {
+    if (statusEl) statusEl.textContent = 'Disconnected';
+    window.ABLEFID_ACTIVE_PROVIDER = null;
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+<script type="module" src="assets/src/payments_coolcoin.js"></script>
+
 </body>
 </html>
