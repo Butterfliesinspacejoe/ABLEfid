@@ -1,0 +1,260 @@
+// Created with AI
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sepolia Swap (USDC → WETH) · SwapExecutorV3</title>
+  <style>
+    :root { --bg:#0b1020; --card:#121936; --muted:#9aa3b2; --fg:#f7f8fc; --accent:#7c5cff; --accent2:#22d3ee; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; background:linear-gradient(180deg,#0b1020,#0a0f1f); color:var(--fg); }
+    header{ padding:24px; text-align:center; }
+    header h1{ margin:0 0 6px; font-size:28px; }
+    header p{ margin:0; color:var(--muted); }
+    .wrap{ max-width:980px; margin:24px auto 64px; padding:0 16px; }
+    .card{ background:linear-gradient(180deg,#111833,#0e1430); border:1px solid #1b2553; border-radius:18px; padding:20px; box-shadow:0 10px 30px rgba(15,25,60,.35); }
+    .grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .row{ display:flex; gap:12px; align-items:center; }
+    label{ font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
+    input, select{ width:100%; padding:12px 14px; border-radius:12px; border:1px solid #263164; background:#0b1230; color:var(--fg); outline:none; }
+    input:focus, select:focus{ border-color: var(--accent2); box-shadow:0 0 0 3px rgba(34,211,238,.15); }
+    .btn{ cursor:pointer; border:0; padding:12px 16px; border-radius:12px; background:linear-gradient(90deg,var(--accent),var(--accent2)); color:white; font-weight:600; }
+    .btn.secondary{ background:#1b2553; border:1px solid #2a3777; }
+    .btn:disabled{ opacity:.5; cursor:not-allowed; }
+    .section-title{ margin:20px 0 10px; font-size:13px; letter-spacing:.08em; color:#cbd5e1; text-transform:uppercase; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .log{ background:#0a1027; border:1px solid #1c2556; border-radius:12px; padding:12px; height:220px; overflow:auto; white-space:pre-wrap; font-size:12px; }
+    .badge{ display:inline-block; padding:4px 10px; border-radius:999px; background:#0f1a44; border:1px solid #27326b; color:#c7d2fe; font-size:12px; }
+    footer{ text-align:center; color:#8ea0bf; margin:28px 0 40px; font-size:12px; }
+  </style>
+  <!-- Ethers v6 UMD build -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Sepolia Swap (USDC → WETH)</h1>
+    <p>Minimal frontend that approves <span class="mono">SwapExecutorV3</span> then calls <span class="mono">swapExactInSingle</span> on Sepolia.</p>
+  </header>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="row" style="justify-content:space-between; margin-bottom:12px;">
+        <div><span class="badge" id="status">Disconnected</span></div>
+        <div class="row">
+          <button class="btn secondary" id="btnSwitch">Switch to Sepolia</button>
+          <button class="btn" id="btnConnect">Connect Wallet</button>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:8px;">
+        <div>
+          <label>Executor (your deployed <span class="mono">SwapExecutorV3</span>)</label>
+          <input id="executor" placeholder="0xYourSwapExecutorOnSepolia" />
+        </div>
+        <div>
+          <label>Your Wallet (auto-fills on connect)</label>
+          <input id="owner" placeholder="0x…" disabled />
+        </div>
+        <div>
+          <label>Token In (USDC Sepolia)</label>
+          <input id="tokenIn" value="0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238" />
+        </div>
+        <div>
+          <label>Token Out (WETH Sepolia)</label>
+          <input id="tokenOut" value="0xfff9976782d46cc05630d1f6ebab18b2324d6b14" />
+        </div>
+        <div>
+          <label>Fee Tier</label>
+          <select id="fee">
+            <option value="500">500 (0.05%)</option>
+            <option value="3000" selected>3000 (0.3%)</option>
+            <option value="10000">10000 (1%)</option>
+          </select>
+        </div>
+        <div>
+          <label>Amount In (human units of tokenIn)</label>
+          <input id="amount" type="number" step="any" value="1" />
+        </div>
+        <div>
+          <label>Min Out (human units of tokenOut, 0 = accept any)</label>
+          <input id="minOut" type="number" step="any" value="0" />
+        </div>
+        <div>
+          <label>Deadline (minutes from now)</label>
+          <input id="deadline" type="number" value="30" />
+        </div>
+      </div>
+
+      <div class="section-title">Allowance</div>
+      <div class="row">
+        <button class="btn secondary" id="btnCheck">Check Allowance</button>
+        <button class="btn" id="btnApprove">Approve</button>
+      </div>
+
+      <div class="section-title">Swap</div>
+      <div class="row">
+        <button class="btn" id="btnSwap">Swap exact in</button>
+      </div>
+
+      <div class="section-title">Logs</div>
+      <div class="log" id="log"></div>
+    </div>
+
+    <footer>
+      Works with MetaMask on <strong>Sepolia</strong> (chain id <span class="mono">0xaa36a7</span>). Use test tokens only.
+    </footer>
+  </div>
+
+<script>
+  const logEl = document.getElementById('log');
+  function log(...args){
+    const line = args.map(a => typeof a==='object' ? JSON.stringify(a,null,2) : String(a)).join(' ');
+    logEl.textContent += line + "\n";
+    logEl.scrollTop = logEl.scrollHeight;
+    console.log(...args);
+  }
+
+  const statusEl = document.getElementById('status');
+  function setStatus(text){ statusEl.textContent = text; }
+
+  const $ = (id)=>document.getElementById(id);
+
+  const ERC20_ABI = [
+    "function approve(address spender, uint256 value) returns (bool)",
+    "function allowance(address owner, address spender) view returns (uint256)",
+    "function decimals() view returns (uint8)",
+    "function symbol() view returns (string)"
+  ];
+
+  // Minimal ABI of your SwapExecutorV3
+  const EXECUTOR_ABI = [
+    "function swapExactInSingle(address tokenIn, address tokenOut, uint24 fee, uint256 amountIn, uint256 minOut) returns (uint256)"
+  ];
+
+  async function getProvider(){
+    if(!window.ethereum){ alert('No injected wallet found. Install MetaMask.'); throw new Error('no wallet'); }
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    return provider;
+  }
+
+  async function ensureSepolia(provider){
+    const net = await provider.getNetwork();
+    if(net.chainId !== 11155111n){
+      try{
+        await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId:'0xaa36a7' }] });
+        setStatus('Switched to Sepolia');
+      }catch(err){
+        if(err && err.code === 4902){
+          await window.ethereum.request({ method:'wallet_addEthereumChain', params:[{
+            chainId:'0xaa36a7', chainName:'Sepolia', nativeCurrency:{name:'SepoliaETH', symbol:'ETH', decimals:18}, rpcUrls:['https://rpc.sepolia.org'], blockExplorerUrls:['https://sepolia.etherscan.io']
+          }]});
+        } else {
+          throw err;
+        }
+      }
+    }
+  }
+
+  async function connect(){
+    const provider = await getProvider();
+    await provider.send('eth_requestAccounts', []);
+    await ensureSepolia(provider);
+    const signer = await provider.getSigner();
+    const addr = await signer.getAddress();
+    $('owner').value = addr;
+    setStatus('Connected');
+    log('Connected:', addr);
+    return { provider, signer, addr };
+  }
+
+  async function readDecimals(provider, token){
+    const c = new ethers.Contract(token, ERC20_ABI, provider);
+    return await c.decimals();
+  }
+
+  function toUnits(amountStr, decimals){
+    return ethers.parseUnits(String(amountStr || '0'), Number(decimals));
+  }
+
+  function isAddr(a){ return /^0x[a-fA-F0-9]{40}$/.test(a); }
+
+  async function checkAllowance(){
+    try{
+      const provider = await getProvider();
+      const signer = await provider.getSigner();
+      const owner = await signer.getAddress();
+      const tokenIn = $('tokenIn').value.trim();
+      const executor = $('executor').value.trim();
+      if(!isAddr(tokenIn) || !isAddr(executor)) return alert('Provide valid tokenIn and executor addresses');
+      await ensureSepolia(provider);
+      const erc = new ethers.Contract(tokenIn, ERC20_ABI, provider);
+      const [dec, sym] = await Promise.all([erc.decimals(), erc.symbol().catch(()=> 'TOKEN')]);
+      const raw = await erc.allowance(owner, executor);
+      log('Allowance:', raw.toString(), `(${sym} decimals ${dec})`);
+    }catch(e){ log('checkAllowance error:', e.message||e); }
+  }
+
+  async function approve(){
+    try{
+      const { provider, signer, addr } = await connect();
+      const tokenIn = $('tokenIn').value.trim();
+      const executor = $('executor').value.trim();
+      const amount = $('amount').value;
+      if(!isAddr(tokenIn) || !isAddr(executor)) return alert('Provide valid tokenIn and executor addresses');
+      const dec = await readDecimals(provider, tokenIn);
+      const amtRaw = toUnits(amount, dec);
+      const erc = new ethers.Contract(tokenIn, ERC20_ABI, signer);
+      const tx = await erc.approve(executor, amtRaw);
+      log('Approve sent:', tx.hash, `→ https://sepolia.etherscan.io/tx/${tx.hash}`);
+      const rc = await tx.wait();
+      log('Approve mined in block', rc.blockNumber);
+    }catch(e){ log('approve error:', e.message||e); }
+  }
+
+  async function swap(){
+    try{
+      const { provider, signer, addr } = await connect();
+      const tokenIn = $('tokenIn').value.trim();
+      const tokenOut = $('tokenOut').value.trim();
+      const executor = $('executor').value.trim();
+      const fee = parseInt($('fee').value, 10);
+      const amount = $('amount').value;
+      const minOut = $('minOut').value;
+      const deadlineMin = parseInt($('deadline').value || '30', 10);
+
+      if(!isAddr(tokenIn) || !isAddr(tokenOut) || !isAddr(executor)) return alert('Provide valid token/contract addresses');
+      await ensureSepolia(provider);
+
+      // Amount conversions
+      const [decIn, decOut] = await Promise.all([
+        readDecimals(provider, tokenIn),
+        readDecimals(provider, tokenOut)
+      ]);
+      const amtRaw = toUnits(amount, decIn);
+      const minOutRaw = toUnits(minOut || '0', decOut);
+
+      // Call your executor
+      const exec = new ethers.Contract(executor, EXECUTOR_ABI, signer);
+      const tx = await exec.swapExactInSingle(tokenIn, tokenOut, fee, amtRaw, minOutRaw);
+      log('Swap sent:', tx.hash, `→ https://sepolia.etherscan.io/tx/${tx.hash}`);
+      const rc = await tx.wait();
+      log('Swap mined in block', rc.blockNumber);
+    }catch(e){ log('swap error:', e.message||e); }
+  }
+
+  // Wire up UI
+  document.getElementById('btnConnect').onclick = connect;
+  document.getElementById('btnSwitch').onclick = async ()=>{
+    const provider = await getProvider();
+    await ensureSepolia(provider);
+    setStatus('Sepolia ready');
+  };
+  document.getElementById('btnCheck').onclick = checkAllowance;
+  document.getElementById('btnApprove').onclick = approve;
+  document.getElementById('btnSwap').onclick = swap;
+</script>
+</body>
+</html>
+
+// This code was created using AI
