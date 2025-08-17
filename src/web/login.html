@@ -4,30 +4,37 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ABLEfid — Login</title>
-  <link rel="stylesheet" href="assets/ablefid.css">
+  <link rel="stylesheet" href="assets/ablefid.css" />
+  <!-- Magic UMD -->
   <script src="https://cdn.jsdelivr.net/npm/magic-sdk@latest/dist/magic.js"></script>
+  <script>
+    window.MAGIC_PUBLISHABLE_KEY = "pk_live_8A7A254AFE5756EC";
+    window.MAGIC_NET = { rpcUrl: "https://testnet.evm.nodes.onflow.org", chainId: 545 };
+  </script>
 </head>
 <body>
   <div class="container" style="max-width:560px">
     <header>
-      <a href="index.html" class="brand"><span class="logo" aria-hidden="true"></span><span class="brand-name">ABLEfid</span></a>
+      <a href="index.html" class="brand">
+        <img src="assets/Logo.png" alt="ABLEfid logo" class="logo-img" />
+        <span class="brand-name">ABLEfid</span>
+      </a>
     </header>
 
     <section class="hero" style="padding-top:32px">
       <h1 class="title">Login with Email</h1>
-      <p class="subtitle">We use a passwordless, email-based wallet to keep things simple and secure.</p>
+      <p class="subtitle">Passwordless login on Flow EVM Testnet.</p>
 
-      <form id="loginForm" class="card" style="text-align:left">
+      <form id="loginForm" class="card">
         <label for="email"><strong>Email</strong></label>
-        <input id="email" name="email" type="email" required placeholder="you@example.com"
-               style="width:100%;margin:8px 0 12px;padding:12px;border:1px solid #cbd5e1;border-radius:10px" />
-        <button type="submit" class="btn btn-primary" style="width:100%">Send Login Link</button>
-        <p id="status" class="subtitle" style="margin-top:12px"></p>
+        <input id="email" name="email" type="email" required placeholder="you@example.com" />
+        <button type="submit" class="btn primary" style="width:100%;margin-top:10px">Send Login Link</button>
+        <p id="status" class="subtitle" style="margin-top:10px"></p>
       </form>
 
       <div class="card" style="margin-top:16px">
         <p style="margin:0;font-size:.95rem;color:#475569">
-          By logging in, a non-custodial keypair is created for you. No seed phrase to manage. You can log in again with your email to recover access.
+          We’ll create a non-custodial keypair for you (no seed phrase). Re-login with your email to recover access.
         </p>
       </div>
     </section>
@@ -37,6 +44,42 @@
     </footer>
   </div>
 
-  <script src="assets/auth.js"></script>
+  <script>
+    const y = document.getElementById('year'); if (y) y.textContent = new Date().getFullYear();
+
+    // Single UMD Magic init on login page
+    const magic = new window.Magic(window.MAGIC_PUBLISHABLE_KEY, { network: window.MAGIC_NET });
+
+    // If already logged in, go straight to dashboard
+    (async () => {
+      try {
+        if (await magic.user.isLoggedIn()) {
+          window.location.href = "dashboard.html";
+          return;
+        }
+      } catch (e) { console.warn(e); }
+    })();
+
+    const form = document.getElementById("loginForm");
+    const status = document.getElementById("status");
+
+    form?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      if (!email) { status.textContent = "Enter an email."; return; }
+      status.textContent = "Sending magic link...";
+      try {
+        await magic.auth.loginWithEmailOTP({ email, showUI: true });
+        const meta = await magic.user.getMetadata();
+        // Normalize session markers (optional convenience)
+        localStorage.setItem("ablefid_session", "true");
+        localStorage.setItem("ablefid_user", JSON.stringify(meta || {}));
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        console.error(err);
+        status.textContent = "Login failed. Check Magic Allowed Origins & popups.";
+      }
+    });
+  </script>
 </body>
 </html>

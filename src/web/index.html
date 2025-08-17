@@ -51,25 +51,12 @@
 
     <a class="btn" href="/demos/flow/login.html">Flow Testnet Login</a>
 
-    <h1>Test the connection to the smart contract!</h1>
-    <input type="text" placeholder="Enter a UUID to get a wallet address!" id="userID">
-    <button id="connectBtn">Connect</button>
-
-    <h1>Create an account instead!</h1>
-    <input type="text" placeholder="Enter the uuid" id="createUser">
-    <button id="createButton">Connect</button>
-
-
-
-    <h1>Wallet result:</h1>
-    <div id="wallet_result"></div>
 
     <h1>Purchase stable coolcoin</h1>
 
-    <button id="connect">Connect MetaMask</button>
+    <button id="connectMetaMask">Connect MetaMask</button>
     <input id="usdValue" type="number" value="1" min="1">
-    <button id="purchase">Purchase</button>
-
+    <button id="purchaseCoolCoin">Purchase</button>
 
 
     <!-- UI -->
@@ -84,25 +71,37 @@
   </div>
 
 
-
   <!--Inline script to just load smart contract addr-->
   <script type="module">
 
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.min.js";
+    const rpcUrl = "https://testnet.evm.nodes.onflow.org";
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
 
+    const contractAddress = "0xE0668BAc6c1E123CbC72e6096C267Eabb117A79A"; //.env?
+    const abi = [
+      "function getWallet(string) view returns (address)"
+    ];
+
+    const FLOW_CHAIN_ID = "0x221"; // 545 decimal
+
+    let contract, signer;
 
     //------------START--------------------------------------
 
 
-    const userToAdd = localStorage.getItem("username")
-    if(!userToAdd){
-      window.location.href = "/login.html"
-    }
+    //const userToAdd = localStorage.getItem("username")
+    //if(!userToAdd){
+    //  window.location.href = "/login.html"
+    //}
+
+    localStorage.setItem("username","uuid12345")
+    const userToAdd = localStorage.getItem('username')
 
 
     async function get_wallet() {
       console.log("Connecting to Flow testnet…");
-      const userElement = document.getElementById('userID')
-      const user = userElement.value
+      const user = localStorage.getItem('username')
       
       console.log(`Testing user ${user}`)
       const contract = new ethers.Contract(contractAddress, abi, provider);
@@ -113,43 +112,15 @@
     }
 
 
-    get_wallet().then(() => {
-        console.log("Wallet lookup finished!");
-      }).catch(err => {
-        console.error("Error:", err);
-      });
-
-      const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
-      const addr = localStorage.getItem("userAddress")
-      if(addr.toLowerCase() === NULL_ADDRESS){
-        //Prompt to create, refresh the page
-
-      }
-    
-
-    //3. Show options
-
-    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.min.js";
-    const rpcUrl = "https://testnet.evm.nodes.onflow.org";
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
-
-    const contractAddress = "0xE0668BAc6c1E123CbC72e6096C267Eabb117A79A"; //.env?
-    const abi = [
-      "function getWallet(string) view returns (address)"
-    ];
-  
-
     //Create Account
     async function create_account(){
-
       //Setup info
       const RPC_URL = "https://testnet.evm.nodes.onflow.org";
       const PRIVATE_KEY = "0xcaac23ba960094ee4958423a549ea904331167423f8091fa244a603a58a24704"; //.env, Our dev wallet to pay for this transaction
       const CONTRACT_ADDRESS = "0xE0668BAc6c1E123CbC72e6096C267Eabb117A79A"; //.env
       
       //Get the user input
-      const userToAddElement = document.getElementById('createUser')
-      
+      const userToAddElement = userToAdd
 
       //Get the contract abi
       const artifact = await fetch("/assets/FlowDB.json").then(res => res.json());
@@ -162,6 +133,9 @@
 
       //Create a random wallet
       const clientWallet = ethers.Wallet.createRandom().connect(provider);
+      
+
+      //Todo, communicate better w/ user
       console.log(`This is your address, save it!!! ${clientWallet.address}`)
       console.log(`This is your private key, save it!!! ${clientWallet.privateKey}`)
   
@@ -173,17 +147,11 @@
 
       const receipt = await tx.wait();
       console.log("Sucessful! This is the block no. - ", receipt.blockNumber);
-
   }
-  
-  document.getElementById("createButton").addEventListener("click", create_account);
 
 
+  //make sure metamask on right network
 
-
-//make sure metamask on right network
-
-const FLOW_CHAIN_ID = "0x221"; // 545 decimal
 
 async function switchToFlowTestnet() {
   try {
@@ -215,34 +183,57 @@ async function switchToFlowTestnet() {
   }
 }
 
-//--------------------------------------------------PAY "MONEY" FOR STABLE COIN COOLCOIN--------------------------//
-    
-      let contract, signer;
+    get_wallet().then(() => {
+        console.log("Wallet lookup finished!");
+      }).catch(err => {
+        console.error("Error:", err);
+      });
 
+      const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
+      const addr = localStorage.getItem("userAddress")
+      if(addr.toLowerCase() === NULL_ADDRESS){
+        //Prompt to create, refresh the page
+        console.log("Need to create Account!")
 
-      const CONTRACT_ADDRESS = "0xe34A005185EF623244e58C8E172B8130b7EdF394";
+        //Todo- lock this behind a button, this is fine for now.
+        create_account().then(() => {
+          console.log("Completed creating account");
+        }).catch(err => {
+          console.error("Error:", err);
+        });
+      }
+
+//-----------------------------------------------------BUY/SELL OPTIONS----------------------------------------------------//
       const artifactCoin = await fetch("/assets/coolCoin.json").then(res => res.json());
       const coinABI = artifactCoin.abi;
       
 
       // Connect MetaMask
-      document.getElementById("connect").onclick = async () => {
+      document.getElementById("connectMetaMask").onclick = async () => {
         if (!window.ethereum) return alert("Install MetaMask!");
         await switchToFlowTestnet();
         const provider = new ethers.BrowserProvider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         signer = await provider.getSigner();
-        contract = new ethers.Contract(CONTRACT_ADDRESS, coinABI, signer);
+        contract = new ethers.Contract(contractAddress, coinABI, signer);
         console.log("Connected as:", await signer.getAddress());
       };
 
       // Mint CoolCoin
-      document.getElementById("purchase").onclick = async () => {
+      document.getElementById("purchaseCoolCoin").onclick = async () => {
+        if (!contract) return alert("Connect MetaMask first.");
+
+        const net = await signer.provider.getNetwork();
+        console.log("chainId:", net.chainId.toString());   // Flow EVM Testnet = 545
+        console.log("name:", net.name);
+
+          
         const usd = document.getElementById("usdValue").value;
         if (!usd || usd <= 0) return alert("Enter amount > 0");
 
         try {
           const value = ethers.parseEther(usd.toString());
+        
           const tx = await contract.mint({ value });
           console.log("Mint tx:", tx.hash);
           await tx.wait();
@@ -255,9 +246,10 @@ async function switchToFlowTestnet() {
           
 
 
-//-----------------------------------REDEEM COOL COIN FOR FLOW COINS---------------------------------------------//
+//-----------------------------------------------------SELL----------------------------------------------------//
 
-async function redeem() {
+
+document.getElementById("redeemBtn").addEventListener('click', async () => {
     try {
       if (!contract) return alert("Connect MetaMask first.");
 
@@ -267,7 +259,6 @@ async function redeem() {
       if (!want || Number(want) <= 0) return alert("Enter an amount > 0");
 
       const amt = ethers.parseUnits(want.toString(), decimals);
-
       
       const bal = await contract.balanceOf(userAddr);
       if (bal < amt) return alert("Not enough COOL to redeem that amount.");
@@ -285,11 +276,10 @@ async function redeem() {
       // Common revert reasons:
       // - "Not enough tokens" (you don't hold that much)
       // - "Not enough Flow in reserve" (contract lacks native coins to pay you back)
-      log("❌ Error:", err.message ?? String(err));
+     console.log("❌ Error:", err.message ?? String(err));
     }
-  }
+  })
 
-  document.getElementById("redeemBtn").addEventListener("click", redeem);
 </script>
   
 </body>

@@ -1,7 +1,5 @@
 import { Magic } from 'https://cdn.jsdelivr.net/npm/magic-sdk@latest/dist/magic.js';
-import * as fcl from "https://cdn.jsdelivr.net/npm/@onflow/fcl/dist/fcl.min.js";
-
-const MAGIC_PUBLISHABLE_KEY = "pk_live_replace_me"; // replace with your Magic publishable key
+const MAGIC_PUBLISHABLE_KEY = "pk_live_8A7A254AFE5756EC"; // replace with your Magic publishable key
 
 // Initialize Magic with Flow extension
 const magic = new Magic(MAGIC_PUBLISHABLE_KEY, { extensions: { flow: new Magic.FlowExtension({ rpcUrl: "https://rest-testnet.onflow.org" }) } });

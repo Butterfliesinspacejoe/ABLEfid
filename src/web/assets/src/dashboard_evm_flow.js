@@ -1,56 +1,77 @@
-// assets/src/dashboard_evm_flow.js
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.min.js";
+import { ABLEFID_DB_ABI } from "./db_abi.js";
 
-// --- SET THESE ---
-const CONTRACT_ADDRESS = "0xYOUR_DEPLOYED_DB_CONTRACT"; // Flow EVM testnet address
-const ABI = [
-  "function getWallet(string) view returns (address)"
-  // If you also want to allow admin writes from browser, add:
-  // ,"function setWallet(string uuid, address wallet) external"
-];
+// --- SET THIS to your deployed Flow EVM testnet address ---
+const DB_CONTRACT_ADDRESS = "0x53e8E0C149a7D6431F481fA38eEc1BdE42b661c4";
 
-// Magic injects an EIP-1193 provider at window.magic.rpcProvider after login
-async function getProvider() {
-  if (!window.magic || !window.magic.rpcProvider) {
-    throw new Error("Magic provider not found. Are you logged in?");
-  }
-  return new ethers.BrowserProvider(window.magic.rpcProvider);
+// Recreate Magic instance on each page load (new tab loses window variables)
+function initMagic() {
+  // Must match your login init
+  return new window.Magic(window.MAGIC_PUBLISHABLE_KEY, {
+    network: { rpcUrl: "https://testnet.evm.nodes.onflow.org", chainId: 545 },
+  });
 }
 
-async function readWallet(uuid) {
-  const provider = await getProvider(); // read-only is fine
-  const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+async function getProvider() {
+  // 1. Prefer WalletConnect (if user connected via modal)
+  if (window.ABLEFID_ACTIVE_PROVIDER) {
+    return window.ABLEFID_ACTIVE_PROVIDER;
+  }
+
+  // 2. Fall back to Magic (if session exists)
+  if (window.MAGIC_PUBLISHABLE_KEY) {
+    const magic = initMagic();
+    return new ethers.BrowserProvider(magic.rpcProvider);
+  }
+
+  // 3. Last resort: read-only Flow EVM JSON-RPC provider
+  return new ethers.JsonRpcProvider("https://testnet.evm.nodes.onflow.org");
+}
+
+
+// READ: get mapped wallet by UUID
+export async function getWalletByUuid(uuid) {
+  const provider = await getProvider();
+  const contract = new ethers.Contract(DB_CONTRACT_ADDRESS, ABLEFID_DB_ABI, provider);
   return await contract.getWallet(uuid);
 }
 
-// Optional: admin write (ONLY if you want to let signed-in users update)
-async function setWallet(uuid, walletAddress) {
+// WRITE (optional, role-gate in UI): set mapping
+export async function setWalletForUuid(uuid, walletAddress) {
   const provider = await getProvider();
-  const signer = await provider.getSigner();
-  const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+  const signer = await provider.getSigner(); // uses Magic session
+  const contract = new ethers.Contract(DB_CONTRACT_ADDRESS, ABLEFID_DB_ABI, signer);
   const tx = await contract.setWallet(uuid, walletAddress, { gasLimit: 500_000 });
   await tx.wait();
   return tx.hash;
 }
 
-// ---- minimal UI wiring (adjust IDs to your page) ----
-const uuidInput = document.getElementById("uuidInput");
-const getBtn = document.getElementById("getWalletBtn");
-const resultEl = document.getElementById("walletResult");
+// ----- Simple UI wiring (adjust IDs to your HTML) -----
+const q = (id) => document.getElementById(id);
 
-getBtn?.addEventListener("click", async () => {
-  resultEl.textContent = "Reading...";
+q("btnGet")?.addEventListener("click", async () => {
+  const uuid = (q("uuidGet")?.value || "").trim();
+  q("outGet").textContent = "Reading...";
   try {
-    const uuid = (uuidInput?.value || "").trim();
-    if (!uuid) throw new Error("Enter a UUID");
-    const addr = await readWallet(uuid);
-    resultEl.textContent = addr && addr !== ethers.ZeroAddress
+    const addr = await getWalletByUuid(uuid);
+    q("outGet").textContent = (addr && addr !== ethers.ZeroAddress)
       ? `Mapped wallet: ${addr}`
       : "No wallet mapped for that UUID.";
   } catch (e) {
     console.error(e);
-    resultEl.textContent = "Read failed. See console for details.";
+    q("outGet").textContent = "Read failed (see console).";
   }
 });
 
-// If you want admin write, add inputs and a button and call setWallet(...)
+q("btnSet")?.addEventListener("click", async () => {
+  const uuid = (q("uuidSet")?.value || "").trim();
+  const addr = (q("addrSet")?.value || "").trim();
+  q("outSet").textContent = "Submitting...";
+  try {
+    const hash = await setWalletForUuid(uuid, addr);
+    q("outSet").textContent = `Tx sent: ${hash}`;
+  } catch (e) {
+    console.error(e);
+    q("outSet").textContent = "Write failed (see console).";
+  }
+});
