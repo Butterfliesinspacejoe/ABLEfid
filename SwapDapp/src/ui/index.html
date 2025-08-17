@@ -1,4 +1,4 @@
-// Created with AI
+<!-- // Created with AI -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -8,6 +8,8 @@
   <style>
     :root { --bg:#0b1020; --card:#121936; --muted:#9aa3b2; --fg:#f7f8fc; --accent:#7c5cff; --accent2:#22d3ee; }
     *{ box-sizing:border-box; }
+    .brand-name { font-weight: 800; letter-spacing: 0.2px;}
+    .brand .logo-img { height: 32px; /* adjust size */ width: auto; float: left; }
     body{ margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; background:linear-gradient(180deg,#0b1020,#0a0f1f); color:var(--fg); }
     header{ padding:24px; text-align:center; }
     header h1{ margin:0 0 6px; font-size:28px; }
@@ -33,6 +35,9 @@
 </head>
 <body>
   <header>
+    <a href="../../../dashboard.html" class="brand" aria-label="ABLEfid home">
+      <img src="../../../assets/Logo.png" alt="ABLEfid logo" class="logo-img" />
+    </a>
     <h1>Sepolia Swap (USDC → WETH)</h1>
     <p>Minimal frontend that approves <span class="mono">SwapExecutorV3</span> then calls <span class="mono">swapExactInSingle</span> on Sepolia.</p>
   </header>
