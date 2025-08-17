@@ -87,23 +87,18 @@
 
   <!--Inline script to just load smart contract addr-->
   <script type="module">
-    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.min.js";
-    const rpcUrl = "https://testnet.evm.nodes.onflow.org";
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
-
-    const contractAddress = "0xE0668BAc6c1E123CbC72e6096C267Eabb117A79A"; //.env?
-    const abi = [
-      "function getWallet(string) view returns (address)"
-    ];
-    
 
 
-    //-------------------------------------GET THE WALLET BY UUID-------------------------------
 
-    
-    //user-uuid-124
-    //uuid-12345
-    //Get wallet address
+    //------------START--------------------------------------
+
+
+    const userToAdd = localStorage.getItem("username")
+    if(!userToAdd){
+      window.location.href = "/login.html"
+    }
+
+
     async function get_wallet() {
       console.log("Connecting to Flow testnet…");
       const userElement = document.getElementById('userID')
@@ -113,18 +108,36 @@
       const contract = new ethers.Contract(contractAddress, abi, provider);
       const result = await contract.getWallet(user);
       console.log("Wallet address:", result);
-      let walletDiv = document.getElementById("wallet_result")
-      walletDiv.innerText = result
       localStorage.setItem("userAddress", result);
+      return result
     }
 
-    document.getElementById("connectBtn").addEventListener("click", get_wallet);
+
+    get_wallet().then(() => {
+        console.log("Wallet lookup finished!");
+      }).catch(err => {
+        console.error("Error:", err);
+      });
+
+      const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
+      const addr = localStorage.getItem("userAddress")
+      if(addr.toLowerCase() === NULL_ADDRESS){
+        //Prompt to create, refresh the page
+
+      }
     
-    //document.getElementById("createButton").addEventListener("click", create_account);
 
+    //3. Show options
 
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.min.js";
+    const rpcUrl = "https://testnet.evm.nodes.onflow.org";
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
 
-    //---------------------------------------------CREATE AN ACCOUNT--------------------------------------
+    const contractAddress = "0xE0668BAc6c1E123CbC72e6096C267Eabb117A79A"; //.env?
+    const abi = [
+      "function getWallet(string) view returns (address)"
+    ];
+  
 
     //Create Account
     async function create_account(){
@@ -136,7 +149,7 @@
       
       //Get the user input
       const userToAddElement = document.getElementById('createUser')
-      const userToAdd = userToAddElement.value
+      
 
       //Get the contract abi
       const artifact = await fetch("/assets/FlowDB.json").then(res => res.json());
