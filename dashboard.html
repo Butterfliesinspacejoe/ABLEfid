@@ -4,9 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ABLEfid — Dashboard</title>
-  <link rel="stylesheet" href="assets/ablefid.css">
-  <!-- Magic UMD (exposes window.Magic) -->
+  <link rel="stylesheet" href="assets/ablefid.css" />
+  <!-- Magic UMD -->
   <script src="https://cdn.jsdelivr.net/npm/magic-sdk@latest/dist/magic.js"></script>
+  <script>
+    window.MAGIC_PUBLISHABLE_KEY = "pk_live_8A7A254AFE5756EC";
+    window.MAGIC_NET = { rpcUrl: "https://testnet.evm.nodes.onflow.org", chainId: 545 };
+  </script>
 </head>
 <body>
   <div class="container">
@@ -22,39 +26,77 @@
 
     <section class="hero" style="padding-top:32px">
       <h1 class="title">Welcome to your Dashboard</h1>
-      <p class="subtitle">Below is your session info. Use this page to wire wallet actions next.</p>
 
-      <article class="card" id="userCard">
-        <h3>Session</h3>
-        <pre id="userJson" style="white-space:pre-wrap;margin:0;color:#0f172a;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0;"></pre>
-      </article>
-
-      <div class="cta" style="margin-top:16px">
+      <div class="cta" style="margin-top:16px; margin-bottom:16px">
         <a class="btn btn-primary" href="SwapDapp/src/ui/index.html" id="actionSend">Sepolia Swap</a>
         <!-- <a class="btn btn-outline" href="#" id="actionReceive">Show Address (placeholder)</a> -->
       </div>
-    </section>
 
-    <!-- Wallet mapping panels (inside container for styling) -->
-    <section class="card">
-      <h3>Lookup Wallet Mapping</h3>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <input id="uuidInput" placeholder="user-uuid-123" />
-        <button id="getWalletBtn" class="btn primary">Get Wallet</button>
-      </div>
-      <div id="walletResult" class="subtitle" style="margin-top:8px"></div>
-    </section>
 
-    <section class="card">
-      <h3>Admin: Set Mapping</h3>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
-        <input id="uuidSet" placeholder="user-uuid-123" />
-        <input id="addrSet" placeholder="0xAbc123..." />
-        <button id="btnSet" class="btn">Set Wallet</button>
-      </div>
-      <div id="outSet" class="subtitle"></div>
-      <small>Note: this sends a transaction; you’ll need test gas on Flow EVM Testnet.</small>
-    </section>
+
+<!-- === Hidden Modal === -->
+<div id="myModal" class="modal">
+  <div class="modal-content">
+    <span id="closeModal" class="close">&times;</span>
+    <h2>No wallet found</h2>
+    <button id="modalBtn" class="btn btn-primary">Create account on Flow</button>
+  </div>
+</div>
+
+<style>
+  /* Modal background */
+  .modal {
+    display: none; /* hidden by default */
+    position: fixed;
+    z-index: 1000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+  }
+  /* Modal box */
+  .modal-content {
+    background: #fff;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 12px;
+    width: 90%; max-width: 400px;
+    text-align: center;
+  }
+  .close {
+    position: absolute;
+    right: 16px;
+    top: 8px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+</style>
+
+<!-- === CoolCoin: Buy (Mint) === -->
+<section class="card">
+  <h3>Buy CoolCoin (Test Stable)</h3>
+  <p class="subtitle">Pay in FLOW (on Flow EVM Testnet) and mint CoolCoin 1:1 (demo).</p>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+    <button id="connectEvmBtn" class="btn">Connect (MetaMask / Wallet)</button>
+    <label for="usdValue"><strong>Amount</strong></label>
+    <input id="usdValue" type="number" value="1" min="1" step="1" />
+    <button id="purchase" class="btn btn-primary">Purchase</button>
+  </div>
+  <pre id="buyLog" style="margin-top:8px"></pre>
+</section>
+
+<!-- === CoolCoin: Redeem === -->
+<section class="card" style="margin-top:16px; margin-bottom:16px">
+  <h3>Redeem CoolCoin → FLOW</h3>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+    <label for="redeemValue"><strong>Amount</strong></label>
+    <input id="redeemValue" type="number" value="1" min="0" step="0.01" />
+    <button id="redeemBtn" class="btn">Redeem</button>
+  </div>
+  <pre id="redeemLog" style="margin-top:8px"></pre>
+</section>
+
 
     <footer>
       <span id="year"></span> © ABLEfid. All rights reserved.
@@ -63,7 +105,132 @@
 
   <script>
     // Footer year
-    const yearEl=document.getElementById('year'); if(yearEl) yearEl.textContent=new Date().getFullYear();
+    const yearEl = document.getElementById('year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
+  
+    // One Magic init (UMD) using the same config as login
+    const magic = new window.Magic(window.MAGIC_PUBLISHABLE_KEY, { network: window.MAGIC_NET });
+  
+    (async () => {
+      try {
+        // Source of truth = Magic session
+        const ok = await magic.user.isLoggedIn();
+        if (!ok) {
+          // no session → go to login ONCE
+          window.location.href = "login.html";
+          return;
+        }
+  
+        // We’re logged in. If you want user info, use a safe fallback.
+        // Some builds may not expose getMetadata(), so avoid it here.
+        const userEl = document.getElementById("userJson");
+        if (userEl) userEl.textContent = "Authenticated via Magic ✅";
+  
+        // Optional convenience markers (do AFTER confirmed session)
+        localStorage.setItem("ablefid_session", "true");
+  
+      } catch (e) {
+        console.warn("Magic check failed", e);
+        window.location.href = "login.html";
+      }
+    })();
+  
+    // Logout handler (only on click)
+    document.getElementById('logoutBtn')?.addEventListener('click', async ()=>{
+      try { await magic.user.logout(); } catch(e) {}
+      localStorage.removeItem('ablefid_session');
+      localStorage.removeItem('ablefid_user');
+      window.location.href = 'index.html';
+    });
+  </script>  
 
-    // Minimal session gate using localStorage
-    const sessionOk = local
+  <!-- Contract ABI + dashboard logic -->
+  <script type="module" src="assets/src/db_abi.js"></script>
+  <script type="module" src="assets/src/dashboard_evm_flow.js"></script>
+
+<!-- WalletConnect EthereumProvider UMD + ethers UMD -->
+<script src="https://unpkg.com/@walletconnect/ethereum-provider/dist/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+
+<script type="module">
+  import { createWeb3Modal, defaultConfig } from './assets/vendor/web3modal-ethers-4/index.js';
+  import { ethers } from './assets/vendor/ethers-6.esm.js';
+
+  // --- REQUIRED: Reown/WalletConnect Cloud Project ID ---
+  const WC_PROJECT_ID = '74055d30710b9a6b5f28abdfd1224508';
+
+  // Flow EVM Testnet (CAIP-2 format for Web3Modal)
+  const chains = [{
+    chainId: 'eip155:545',
+    name: 'Flow EVM Testnet',
+    currency: 'FLOW',
+    rpcUrl: 'https://testnet.evm.nodes.onflow.org'
+  }];
+
+  const w3m = createWeb3Modal({
+    ethersConfig: defaultConfig({
+      metadata: {
+        name: 'ABLEfid',
+        description: 'ABLEfid — Flow EVM Testnet',
+        url: window.location.origin,
+        icons: [window.location.origin + '/favicon.ico']
+      }
+    }),
+    chains,
+    projectId: WC_PROJECT_ID
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const statusEl = $('wcStatus');
+
+  // Open/close
+  $('btnConnectWC')?.addEventListener('click', () => w3m.open());
+  $('btnDisconnectWC')?.addEventListener('click', () => w3m.disconnect());
+
+  // On connect, expose an ethers Provider for the rest of your app
+  window.addEventListener('w3m:connected', async () => {
+    try {
+      const provider = await w3m.getWalletProvider();   // ethers v6 Provider
+      const signer = await provider.getSigner();
+      const addr = await signer.getAddress();
+      if (statusEl) statusEl.textContent = `Connected: ${addr.slice(0,6)}…${addr.slice(-4)}`;
+
+      // Prefer WC provider for contract calls
+      window.ABLEFID_ACTIVE_PROVIDER = provider;
+
+      // Ensure Flow EVM Testnet (0x221 = 545)
+      const ethProvider = await w3m.getWalletProvider().then(p => p.provider);
+      try {
+        await ethProvider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x221' }] });
+      } catch {
+        try {
+          await ethProvider.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x221',
+              chainName: 'Flow EVM Testnet',
+              nativeCurrency: { name: 'FLOW', symbol: 'FLOW', decimals: 18 },
+              rpcUrls: ['https://testnet.evm.nodes.onflow.org'],
+              blockExplorerUrls: []
+            }]
+          });
+        } catch (e2) {
+          console.warn('add/switch chain failed', e2);
+        }
+      }
+    } catch (e) {
+      console.error('w3m connected handler error', e);
+    }
+  });
+
+  window.addEventListener('w3m:disconnected', () => {
+    if (statusEl) statusEl.textContent = 'Disconnected';
+    window.ABLEFID_ACTIVE_PROVIDER = null;
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+<script type="module" src="assets/src/payments_coolcoin.js"></script>
+
+</body>
+</html>
