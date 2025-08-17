@@ -5,14 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ABLEfid — Login</title>
   <link rel="stylesheet" href="assets/ablefid.css" />
-  <!-- Magic UMD (exposes window.Magic if you need it elsewhere) -->
+  <!-- Magic UMD -->
   <script src="https://cdn.jsdelivr.net/npm/magic-sdk@latest/dist/magic.js"></script>
+  <script>
+    window.MAGIC_PUBLISHABLE_KEY = "pk_live_8A7A254AFE5756EC";
+    window.MAGIC_NET = { rpcUrl: "https://testnet.evm.nodes.onflow.org", chainId: 545 };
+  </script>
 </head>
 <body>
   <div class="container" style="max-width:560px">
     <header>
       <a href="index.html" class="brand">
-        <img src="assets/Logo.png" alt="ABLEfid logo" class="logo-img" /></span><span class="brand-name">ABLEfid</span>
+        <img src="assets/Logo.png" alt="ABLEfid logo" class="logo-img" />
+        <span class="brand-name">ABLEfid</span>
       </a>
     </header>
 
@@ -39,14 +44,79 @@
     </footer>
   </div>
 
-  <script>
-    const y=document.getElementById('year'); if(y) y.textContent=new Date().getFullYear();
-  </script>
+<script>
+  const y = document.getElementById('year'); if (y) y.textContent = new Date().getFullYear();
 
-  <!-- IMPORTANT: remove the old Flow/FCL auth.js include -->
-  <!-- <script src="assets/auth.js"></script> -->
+  // Single UMD Magic init on login page
+  const magic = new window.Magic(window.MAGIC_PUBLISHABLE_KEY, { network: window.MAGIC_NET });
 
-  <!-- Load the EVM login logic (relative path; no leading slash) -->
-  <script type="module" src="assets/src/auth_evm_flow.js"></script>
+  // If already logged in, go straight to dashboard
+  (async () => {
+    try {
+      if (await magic.user.isLoggedIn()) {
+        window.location.href = "dashboard.html";
+        return;
+      }
+    } catch (e) { console.warn(e); }
+  })();
+
+  const form = document.getElementById("loginForm");
+  const status = document.getElementById("status");
+
+  // base64url decode helper for JWT payloads
+  function decodeJwtPayload(idToken) {
+    try {
+      const base64Url = idToken.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(atob(base64).split('').map(c =>
+        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join(''));
+      return JSON.parse(json);
+    } catch { return {}; }
+  }
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const emailInput = document.getElementById("email").value.trim();
+    if (!emailInput) { status.textContent = "Enter an email."; return; }
+    status.textContent = "Sending magic link...";
+
+    try {
+      await magic.auth.loginWithEmailOTP({ email: emailInput, showUI: true });
+
+      // Try friendly metadata first (if available in this build)
+      if (magic.user.getMetadata) {
+        try {
+          const meta = await magic.user.getMetadata();
+          email = meta?.email || null;
+          // store whole meta if you want:
+          localStorage.setItem("ablefid_user_meta", JSON.stringify(meta || {}));
+        } catch {}
+      }
+
+      // Fallback: read email from ID Token (JWT)
+      try {
+        const idToken = await magic.user.getIdToken({ lifespan: 600 }); // 10 min
+        localStorage.setItem("ablefid_idtoken", idToken);
+        if (!email) {
+          const payload = decodeJwtPayload(idToken);
+          email = payload.email || null;
+        }
+      } catch {}
+
+      // Normalize session markers (for your dashboard gate/UI)
+      localStorage.setItem("ablefid_session", "true");
+      if (email) localStorage.setItem("ablefid_user_email", email.value);
+      
+      
+
+      window.location.href = "dashboard.html";
+    } catch (err) {
+      console.error(err);
+      status.textContent = "Login failed. Check Magic Allowed Origins & popups.";
+    }
+  });
+</script>
+
 </body>
 </html>
