@@ -18,6 +18,7 @@ window.MAGIC_PUBLISHABLE_KEY = MAGIC_PUBLISHABLE_KEY;
     if (ok) {
       // keep this relative unless you truly host at site root
       window.location.href = "dashboard.html";
+      
       return;
     }
   } catch {}
@@ -33,6 +34,7 @@ form?.addEventListener("submit", async (e) => {
 
   status.textContent = "Sending magic link...";
   try {
+    console.log("Starting....");
     await magic.auth.loginWithEmailOTP({ email, showUI: true });
 
     // (Optional) sanity check/log
@@ -45,6 +47,9 @@ form?.addEventListener("submit", async (e) => {
     localStorage.setItem("ablefid_user", JSON.stringify(meta || {}));
 
     // Relative path so it works whether you're at / or in a subfolder
+
+
+    localStorage.setItem("email", email);
     window.location.href = "dashboard.html";
   } catch (err) {
     console.error(err);
