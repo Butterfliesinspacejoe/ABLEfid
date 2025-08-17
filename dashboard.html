@@ -4,9 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ABLEfid — Dashboard</title>
-  <link rel="stylesheet" href="assets/ablefid.css">
-  <!-- Magic UMD (exposes window.Magic) -->
+  <link rel="stylesheet" href="assets/ablefid.css" />
+  <!-- Magic UMD -->
   <script src="https://cdn.jsdelivr.net/npm/magic-sdk@latest/dist/magic.js"></script>
+  <script>
+    window.MAGIC_PUBLISHABLE_KEY = "pk_live_8A7A254AFE5756EC";
+    window.MAGIC_NET = { rpcUrl: "https://testnet.evm.nodes.onflow.org", chainId: 545 };
+  </script>
 </head>
 <body>
   <div class="container">
@@ -33,9 +37,19 @@
         <a class="btn btn-primary" href="#" id="actionSend">Send USDC (placeholder)</a>
         <a class="btn btn-outline" href="#" id="actionReceive">Show Address (placeholder)</a>
       </div>
+
+      <!-- WalletConnect controls -->
+      <div class="card" style="margin-top:16px">
+        <h3>Connect External Wallet</h3>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px">
+          <button id="btnConnectWC" class="btn primary">Connect Wallet</button>
+          <button id="btnDisconnectWC" class="btn btn-outline">Disconnect</button>
+        </div>
+        <p id="wcStatus" class="subtitle" style="margin-top:8px;color:#475569">Not connected</p>
+      </div>
     </section>
 
-    <!-- Wallet mapping panels (inside container for styling) -->
+    <!-- Wallet mapping panels -->
     <section class="card">
       <h3>Lookup Wallet Mapping</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -63,7 +77,53 @@
 
   <script>
     // Footer year
-    const yearEl=document.getElementById('year'); if(yearEl) yearEl.textContent=new Date().getFullYear();
+    const yearEl = document.getElementById('year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
+  
+    // One Magic init (UMD) using the same config as login
+    const magic = new window.Magic(window.MAGIC_PUBLISHABLE_KEY, { network: window.MAGIC_NET });
+  
+    (async () => {
+      try {
+        // Source of truth = Magic session
+        const ok = await magic.user.isLoggedIn();
+        if (!ok) {
+          // no session → go to login ONCE
+          window.location.href = "login.html";
+          return;
+        }
+  
+        // We’re logged in. If you want user info, use a safe fallback.
+        // Some builds may not expose getMetadata(), so avoid it here.
+        const userEl = document.getElementById("userJson");
+        if (userEl) userEl.textContent = "Authenticated via Magic ✅";
+  
+        // Optional convenience markers (do AFTER confirmed session)
+        localStorage.setItem("ablefid_session", "true");
+  
+      } catch (e) {
+        console.warn("Magic check failed", e);
+        window.location.href = "login.html";
+      }
+    })();
+  
+    // Logout handler (only on click)
+    document.getElementById('logoutBtn')?.addEventListener('click', async ()=>{
+      try { await magic.user.logout(); } catch(e) {}
+      localStorage.removeItem('ablefid_session');
+      localStorage.removeItem('ablefid_user');
+      window.location.href = 'index.html';
+    });
+  </script>  
 
-    // Minimal session gate using localStorage
-    const sessionOk = local
+  <!-- Contract ABI + dashboard logic -->
+  <script type="module" src="assets/src/db_abi.js"></script>
+  <script type="module" src="assets/src/dashboard_evm_flow.js"></script>
+
+  <!-- WalletConnect / Web3Modal + ethers -->
+  <script src="https://unpkg.com/@web3modal/wallet@4"></script>
+  <script src="https://unpkg.com/@web3modal/ethers@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.min.js"></script>
+  <script type="module" src="assets/src/walletconnect_flow_evm.js"></script>
+</body>
+</html>
