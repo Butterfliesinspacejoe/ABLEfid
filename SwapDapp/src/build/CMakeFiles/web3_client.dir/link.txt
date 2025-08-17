@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/web3_client.dir/main.cpp.o -o web3_client  /usr/lib/x86_64-linux-gnu/libcurl.so 
