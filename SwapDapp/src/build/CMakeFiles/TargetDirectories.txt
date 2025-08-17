@@ -1,0 +1,3 @@
+/home/mark/Desktop/Fast/ETHGlobal2025/ABLEfid/src/build/CMakeFiles/web3_client.dir
+/home/mark/Desktop/Fast/ETHGlobal2025/ABLEfid/src/build/CMakeFiles/edit_cache.dir
+/home/mark/Desktop/Fast/ETHGlobal2025/ABLEfid/src/build/CMakeFiles/rebuild_cache.dir
