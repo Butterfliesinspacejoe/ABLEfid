@@ -6,11 +6,16 @@ const FLOW_CHAIN_ID_HEX = "0x221"; // 545
 const COOLCOIN_ADDRESS = "0xe34A005185EF623244e58C8E172B8130b7EdF394"; // <-- confirm your deployed address
 const COOLCOIN_ABI_URL = "assets/coolCoin.json"; // relative to dashboard.html
 
+let chosenAddr = null;
+
+
 // ---------- DOM Helpers ----------
 const $ = (id) => document.getElementById(id);
 const buyLog = $("buyLog");
 const redeemLog = $("redeemLog");
 function setText(el, txt) { if (el) el.textContent = txt; }
+
+
 
 // ---------- Provider Priority ----------
 async function getActiveProvider() {
@@ -98,10 +103,22 @@ async function getCoinContract(signerOrProvider) {
 }
 
 // ---------- UI: Connect ----------
+
+async function requestAccountsSelector() {
+  await window.ethereum.request({
+    method: "wallet_requestPermissions",
+    params: [{ eth_accounts: {} }],
+  });
+  return window.ethereum.request({ method: "eth_accounts" });
+}
+
+
 $("connectEvmBtn")?.addEventListener("click", async () => {
   try {
-    const provider = await getActiveProvider();
+    const accountArray = await requestAccountsSelector()
+    chosenAddr = accountArray[0];
 
+    const provider = await getActiveProvider();
     // Try to switch/add Flow EVM Testnet if wallet supports it
     await ensureFlowChain(provider);
 
@@ -109,7 +126,13 @@ $("connectEvmBtn")?.addEventListener("click", async () => {
     const eip1193 = getEip1193(provider);
     try { await eip1193?.request?.({ method: "eth_requestAccounts" }); } catch {}
 
-    const signer = await getSignerIfPossible(provider);
+    
+    
+    // Build signer specifically for the chosen address
+    const ethersProvider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await ethersProvider.getSigner(chosenAddr);
+
+
     if (!signer) {
       setText(buyLog, "Please connect a wallet (WalletConnect or MetaMask).");
       return;
@@ -123,62 +146,118 @@ $("connectEvmBtn")?.addEventListener("click", async () => {
 });
 
 // ---------- UI: Purchase (Mint) ----------
+
+  // ---------- UI: Purchase (Mint) ----------
 $("purchase")?.addEventListener("click", async () => {
   try {
-    const provider = await getActiveProvider();
-    const signer = await getSignerIfPossible(provider);
-    if (!signer) throw new Error("No signer. Connect a wallet first.");
+    // 1. Make sure MetaMask is available
+    if (!window.ethereum) throw new Error("MetaMask not detected.");
 
-    // Ensure network if wallet supports switching
-    await ensureFlowChain(provider);
+    // 2. Build provider + signer
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
 
-    const amtStr = $("usdValue")?.value;
-    const amt = Number(amtStr || 0);
+    // 3. Contract instance (replace with your ABI + deployed address)
+    const CONTRACT_ADDRESS = "0xe34A005185EF623244e58C8E172B8130b7EdF394";
+
+    const CONTRACT_ABI = [
+      "function redeem(uint256 amount)"
+    ];
+
+    const coin = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+    // 4. Get user input
+    const usdVal = $("usdValue")?.value;
+    const amt = Number(usdVal || 0);
     if (!amt || amt <= 0) throw new Error("Enter amount > 0");
 
-    const coin = await getCoinContract(signer);
-    const value = window.ethers.parseEther(amt.toString());
+    // 5. Convert to wei
+    const amount = ethers.parseEther(amt.toString());
+    console.log(`Redeeming ${amount} MyT`);
 
+    // 6. Call redeem
     setText(buyLog, "Submitting mint tx...");
-    const tx = await coin.mint({ value });
+    const tx = await coin.redeem(amount)
     setText(buyLog, `Mint tx: ${tx.hash}`);
+
     await tx.wait();
     setText(buyLog, `✅ Minted ${amt} COOL`);
-  } catch (e) {
-    console.error(e);
-    setText(buyLog, `Mint failed: ${e.message || String(e)}`);
+  } catch (err) {
+    console.error(err);
+    setText(buyLog, `Mint failed: ${err.message || String(err)}`);
   }
 });
+
 
 // ---------- UI: Redeem ----------
 $("redeemBtn")?.addEventListener("click", async () => {
   try {
-    const provider = await getActiveProvider();
-    const signer = await getSignerIfPossible(provider);
-    if (!signer) throw new Error("No signer. Connect a wallet first.");
+    // 1. Make sure MetaMask is available
+    if (!window.ethereum) throw new Error("MetaMask not detected.");
 
-    // Ensure network if wallet supports switching
-    await ensureFlowChain(provider);
+    // 2. Build provider + signer
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
 
-    const wantStr = $("redeemValue")?.value;
-    const want = Number(wantStr || 0);
-    if (!want || want <= 0) throw new Error("Enter amount > 0");
+    // 3. Contract instance (replace with your ABI + deployed address)
+    const CONTRACT_ADDRESS = "0xe34A005185EF623244e58C8E172B8130b7EdF394";
 
-    const coin = await getCoinContract(signer);
-    const decimals = await coin.decimals();
-    const amt = window.ethers.parseUnits(want.toString(), decimals);
+    const CONTRACT_ABI = [
+      "function mint() payable"
+    ];
 
-    const userAddr = await signer.getAddress();
-    const bal = await coin.balanceOf(userAddr);
-    if (bal < amt) throw new Error("Not enough COOL to redeem that amount.");
+    const coin = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-    setText(redeemLog, "Submitting redeem tx...");
-    const tx = await coin.redeem(amt);
-    setText(redeemLog, `Redeem tx: ${tx.hash}`);
+    // 4. Get user input
+    const usdVal = $("usdValue")?.value;
+    const amt = Number(usdVal || 0);
+    if (!amt || amt <= 0) throw new Error("Enter amount > 0");
+
+    // 5. Convert to wei
+    const value = ethers.parseEther(amt.toString());
+    console.log(`This is the value ${value}`)
+
+    // 6. Call mint
+    setText(buyLog, "Submitting mint tx...");
+    const tx = await coin.mint({ value });
+    setText(buyLog, `Mint tx: ${tx.hash}`);
+
     await tx.wait();
-    setText(redeemLog, `✅ Redeemed ${want} COOL for FLOW`);
-  } catch (e) {
-    console.error(e);
-    setText(redeemLog, `Redeem failed: ${e.message || String(e)}`);
+    setText(buyLog, `✅ Minted ${amt} COOL`);
+  } catch (err) {
+    console.error(err);
+    setText(buyLog, `Mint failed: ${err.message || String(err)}`);
   }
 });
+
+// ---------- Helper ----------
+async function switchToFlowTestnet() {
+  const FLOW_CHAIN_ID = "0x221";
+  try {
+    // Try switching first
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: FLOW_CHAIN_ID }],
+    });
+  } catch (switchError) {
+    // If the chain isn’t added, add it then switch
+    if (switchError.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: FLOW_CHAIN_ID,
+          chainName: "Flow EVM Testnet",
+          nativeCurrency: {
+            name: "Flow",
+            symbol: "FLOW",
+            decimals: 18,
+          },
+          rpcUrls: ["https://testnet.evm.nodes.onflow.org"],
+          blockExplorerUrls: ["https://evm-testnet.flowscan.io"],
+        }],
+      });
+    } else {
+      throw switchError;
+    }
+  }
+}

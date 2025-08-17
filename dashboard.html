@@ -26,59 +26,46 @@
 
     <section class="hero" style="padding-top:32px">
       <h1 class="title">Welcome to your Dashboard</h1>
-      <p class="subtitle">Below is your session info. Use this page to wire wallet actions next.</p>
 
-      <article class="card" id="userCard">
-        <h3>Session</h3>
-        <pre id="userJson" style="white-space:pre-wrap;margin:0;color:#0f172a;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0;"></pre>
-      </article>
 
-      <div class="cta" style="margin-top:16px">
-        <a class="btn btn-primary" href="#" id="actionSend">Send USDC (placeholder)</a>
-        <a class="btn btn-outline" href="#" id="actionReceive">Show Address (placeholder)</a>
-      </div>
-
-      <!-- WalletConnect controls -->
-      <div class="card" style="margin-top:16px">
-        <h3>Connect External Wallet</h3>
-        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px">
-          <button id="btnConnectWC" class="btn primary">Connect Wallet</button>
-          <button id="btnDisconnectWC" class="btn btn-outline">Disconnect</button>
-        </div>
-        <p id="wcStatus" class="subtitle" style="margin-top:8px;color:#475569">Not connected</p>
-      </div>
-    </section>
-
-    <!-- Wallet mapping panels -->
-    <section class="card">
-      <h3>Lookup Wallet Mapping</h3>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <input id="uuidInput" placeholder="user-uuid-123" />
-        <button id="getWalletBtn" class="btn primary">Get Wallet</button>
-      </div>
-      <div id="walletResult" class="subtitle" style="margin-top:8px"></div>
-    </section>
-
-    <section class="card">
-      <h3>Admin: Set Mapping</h3>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
-        <input id="uuidSet" placeholder="user-uuid-123" />
-        <input id="addrSet" placeholder="0xAbc123..." />
-        <button id="btnSet" class="btn">Set Wallet</button>
-      </div>
-      <div id="outSet" class="subtitle"></div>
-      <small>Note: this sends a transaction; you’ll need test gas on Flow EVM Testnet.</small>
-    </section>
-
-    <!-- === External Wallet Connection (if not already present) === -->
-<section class="card">
-  <h3>External Wallet</h3>
-  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px">
-    <button id="btnConnectWC" class="btn primary">Connect Wallet (QR)</button>
-    <button id="btnDisconnectWC" class="btn btn-outline">Disconnect</button>
+<!-- === Hidden Modal === -->
+<div id="myModal" class="modal">
+  <div class="modal-content">
+    <span id="closeModal" class="close">&times;</span>
+    <h2>No wallet found</h2>
+    <button id="modalBtn" class="btn btn-primary">Create account on Flow</button>
   </div>
-  <p id="wcStatus" class="subtitle" style="margin-top:8px;color:#475569">Not connected</p>
-</section>
+</div>
+
+<style>
+  /* Modal background */
+  .modal {
+    display: none; /* hidden by default */
+    position: fixed;
+    z-index: 1000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+  }
+  /* Modal box */
+  .modal-content {
+    background: #fff;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 12px;
+    width: 90%; max-width: 400px;
+    text-align: center;
+  }
+  .close {
+    position: absolute;
+    right: 16px;
+    top: 8px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+</style>
 
 <!-- === CoolCoin: Buy (Mint) === -->
 <section class="card">
